@@ -192,7 +192,7 @@ def take_user_number():
     If you have used the program before ignore the default values, you also need to start
     by giving the starting number and the final number a number larger than the last number
     in the list you calculated.
-    
+
         \033[1mThis program can be dangerous for your computer if you don't know exactly what you are doing,
         use the recommended Chunk and Cpu values\033[0m
 
@@ -201,7 +201,7 @@ def take_user_number():
         try:
             start_number_ = int(input(f"Enter a ODD positive start number(default: number>={user_min_value_}): "))
             user_end_number_ = int(input(f"Enter a ODD last number: "))
-            start_number_ = min(start_number_, user_min_value_)   # Kullanıcı dostu bir seçim
+            start_number_ = min(start_number_, user_min_value_)  # Kullanıcı dostu bir seçim
             if start_number_ <= 0 or user_end_number_ <= 0 or start_number_ >= user_end_number_:
                 raise ValueError
             if start_number_ % 2 == 0 or user_end_number_ % 2 == 0:
@@ -328,8 +328,8 @@ def is_prime(number, primes):
     sqrt_of_num = None
 
     # Aynı Anda Karekök Fonksiyonunu Meşgul Etmemeleri İçin
-    with lock:
-        sqrt_of_num = math.isqrt(number)
+    #with lock:
+    sqrt_of_num = math.isqrt(number)
 
     for prime in primes:
         if prime > sqrt_of_num:
@@ -342,7 +342,7 @@ def is_prime(number, primes):
 
 def worker(chunk, shared_primes):
     try:
-        start, end = chunk    # Gönerilen aralık oluşturulur ve paralel işlenir
+        start, end = chunk  # Gönerilen aralık oluşturulur ve paralel işlenir
         local_results = []  # Her işçinin kendi kayıt listesi
 
         for number in range(start, end + 2, 2):
@@ -380,7 +380,7 @@ def choose_cpu_count():
 
         while True:
             cpu_count_ = int(input("Enter the number of CPUs to use for the process: "))
-            cpu_count_ = min(cpu_count_, mp_count//2)   # min cpu kullanıcıya göre seç
+            cpu_count_ = max(cpu_count_, mp_count // 2)  # min cpu kullanıcıya göre seç
             if cpu_count_ < mp_count // 2 or cpu_count_ > mp_count:
                 raise ValueError(f"Invalid choice! Please enter a value between {mp_count // 2} and {mp_count}.")
 
@@ -421,7 +421,7 @@ def chose_num_of_chunks():
 
         while True:
             chunk_count = int(input("Enter the number of chunks to divide the task into: "))
-            chunk_count = min(chunk_count, 4)   # Kullanıcının seçimini min 4 olarak seç
+            chunk_count = max(chunk_count, 4)  # Kullanıcının seçimini min 4 olarak seç
             if chunk_count > mp_count or chunk_count <= 0 or chunk_count > 12:
                 raise ValueError(f"Invalid choice! Please enter a value between {mp_count // 2} and 8.")
 
