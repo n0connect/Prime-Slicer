@@ -225,9 +225,10 @@ def approx_calculation_of_probability() -> None:
 
     average_prime_ = (user_end_number_ / math.log(user_end_number_)) - (start_number_ / math.log(start_number_))
     density_of_primes_ = 100 * (average_prime_ / (user_end_number_ - start_number_))
-
+    print(f"_" * 60)
     print(f"\033[1mAverage prime number count between ≈ {int(average_prime_)}\033[1n")
     print(f"\033[1mDensity of prime between than ≈ %{int(density_of_primes_)}\033[1n")
+    print(f"_" * 60)
     time.sleep(5)  # İncelenmek için 5sn bekler
 
 
@@ -266,11 +267,11 @@ def information_about_saved_pkl_():
                 print(f"The prime number at the top of the list: {dump_list[0]}")
                 print(f"The prime number at the end of the list: {dump_list[-1]}")
                 print(f"the list contains {len_of_list} prime numbers")
-                print("\n")
+                print(f"_" * 60)
         except Exception as ex:
             print(f"saved_prime_list{temp_num}.pkl file is broken: {ex}")
             print("Please Delete Broken and Empty Files. And Restart The Program")
-            print("\n")
+            print(f"_" * 60)
     print(f"\033[1mTotal number of calculated primes in the saved .pkl files: {total_primes_}\033[1n")
 
 
@@ -327,8 +328,7 @@ def save_prime_list(list_):
 def is_prime(number, primes):
     sqrt_of_num = None
 
-    # Aynı Anda Karekök Fonksiyonunu Meşgul Etmemeleri İçin
-    #with lock:
+    # Aynı Anda Karekök Fonksiyonunu Meşgul Etmemeleri İçin with lock:
     sqrt_of_num = math.isqrt(number)
 
     for prime in primes:
@@ -359,32 +359,34 @@ def worker(chunk, shared_primes):
 def choose_cpu_count():
     mp_count = multiprocessing.cpu_count()
 
+    print(f"_" * 60)
     print(f"""
-    \033[1mIf you're unsure about the optimal choice, consider the following:
+    If you're unsure about the optimal choice, consider the following:
 
     More CPU can lead to Faster processing but might require additional system resources.
 
-    Total CPU count: {mp_count}
-    Recommended range: [{mp_count // 2}, {mp_count}]
+    \033[1mTotal CPU count: {mp_count}
+    Recommended range: [{mp_count // 2}, {mp_count}]\033[0m
 
     Choose a value based on your system's capabilities:
-    - If you have a powerful system, you can experiment with higher values for faster processing.
-    - For resource-conscious use, stick to the recommended range or lower.
+    \033[1m- If you have a powerful system, you can experiment with higher values for faster processing.
+    - For resource-conscious use, stick to the recommended range or lower.\033[0m
 
-    Keep in mind that the ideal value may vary based on your specific hardware and workload.\033[0m
+    Keep in mind that the ideal value may vary based on your \033[1m"specific hardware"\033[0m and workload.
     """)
+    print(f"_" * 60)
 
     try:
         mp_count = multiprocessing.cpu_count()
-        print(f"\nTotal CPU count: {mp_count}")
 
         while True:
             cpu_count_ = int(input("Enter the number of CPUs to use for the process: "))
             cpu_count_ = max(cpu_count_, mp_count // 2)  # min cpu kullanıcıya göre seç
             if cpu_count_ < mp_count // 2 or cpu_count_ > mp_count:
                 raise ValueError(f"Invalid choice! Please enter a value between {mp_count // 2} and {mp_count}.")
-
-            print(f"We are going to use {cpu_count_} CPUs for the process.")
+            print(f"_" * 60)
+            print(f"\033[1mWe are going to use {cpu_count_} CPUs for the process.\033[0m")
+            time.sleep(2)  # incelemek için
             return cpu_count_
 
     except ValueError as ve:
@@ -400,32 +402,35 @@ def choose_cpu_count():
 
 def chose_num_of_chunks():
     print("""
-    \033[1mIf you're unsure about the optimal choice, consider the following:
+    If you're unsure about the optimal choice, consider the following:
 
     More CHUNKS can lead to Faster processing but might require additional system resources.
     Fewer CHUNKS might be slower but can be more resource-efficient.
+    
+    \033[1mTotal CPU count: {mp_count}\033[0m
+    
+    Recommended Value Range: \033[1m[4, 8]\033[0m
+    Max Value Range: \033[1m12\033[0m
 
-    Recommended Value Range: [4, 8]
-    Max Value Range: 12
-
-    Choose a value based on your system's capabilities:
+    \033[1mChoose a value based on your system's capabilities:
     - If you have a powerful system, you can experiment with higher values for faster processing.
-    - For resource-conscious use, stick to the recommended range or lower.
+    - For resource-conscious use, stick to the recommended range or lower.\033[0m
 
-    Keep in mind that the ideal value may vary based on your specific hardware and workload.\033[0m
+    Keep in mind that the ideal value may vary based on your specific hardware and workload.
     """)
-
+    print(f"_" * 60)
     try:
         mp_count = multiprocessing.cpu_count()
-        print(f"\033[1m             Total CPU count: {mp_count}\033[0m")
 
         while True:
-            chunk_count = int(input("Enter the number of chunks to divide the task into: "))
+            chunk_count = int(input("\033[1mEnter the number of chunks to divide the task into: \033[0m"))
             chunk_count = max(chunk_count, 4)  # Kullanıcının seçimini min 4 olarak seç
             if chunk_count > mp_count or chunk_count <= 0 or chunk_count > 12:
                 raise ValueError(f"Invalid choice! Please enter a value between {mp_count // 2} and 8.")
 
-            print(f"We are going to use {chunk_count} chunks to distribute the task.")
+            print(f"\033[1mWe are going to use {chunk_count} chunks to distribute the task.\033[0m")
+            print(f"_" * 60)
+            time.sleep(2)   # İncelemek için.
             return chunk_count
 
     except ValueError as ve:
