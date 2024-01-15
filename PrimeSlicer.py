@@ -1,14 +1,12 @@
 from multiprocessing import Lock, Pool  # Paralel programlama için Lock, ve İşlem havuzu Pool
-from tqdm import tqdm   # ProcessBar
 import multiprocessing  # Paralel programlama
+from tqdm import tqdm  # ProcessBar
+import configparser  # .ini Dosyası oluşturmak için
 import math
 import pickle
 import os
 import sys
 import time
-import gc   # Manuel Bellek Temizlemek
-import configparser  # .ini Dosyası oluşturmak için
-
 
 # GLOBAL VARIABLES
 user_end_number_: int  # Kullanıdan alınan bitiş değerini bellekte tutar.
@@ -17,16 +15,11 @@ last_digit_ = 0  # Son kaydedilen .pkl dosyasının sayı değerini bellekte tut
 temp_num_ = 0  # Yüklenilen .pkl dosyasının sayı değerini bellekte tutar.
 loaded_list: list  # Kontrol için yüklenen .pkl dosyası bu listede tutulur.
 new_created_file_name_: str  # Yeni oluşan yada son kaydedilen .pkl dosyasının ismi.
-user_min_value_: int    # Kullanıcının girebileceği min değer
+loaded_prime_list_name: str  # Asal sayı kontrolünü yapacak liste belirlenir.
+user_min_value_: int  # Kullanıcının girebileceği min başlangıç değeri.
+marginal_error: int = 10  # Karekök ve Algoritmik hatalardan kaçınmak için (default=10)
 
-# .ini CONTROL
-marginal_error: int = 10     # Karekök ve Algoritmik hatalardan kaçınmak için (default=10)
-
-lock = Lock()   # Paralel çalışan parçacıklar için kilit mekanizması
-
-
-def clean_memory():
-    gc.collect()
+lock = Lock()  # Paralel çalışan parçacıklar için kilit mekanizması
 
 
 def start_program():
@@ -45,23 +38,37 @@ def update_ini_():
     global user_min_value_
     global last_digit_
     global new_created_file_name_
+    global loaded_prime_list_name
     global marginal_error
 
-    # Yeni bir ConfigParser nesnesi oluşturun
+    # Config nesnesi oluşturulur
     config = configparser.ConfigParser()
+    config_file = 'config.ini'
 
-    # .ini Dosyasına kaydedilebilir str() haline getirmek
+    # .ini dosyasının varlığını kontrol eder
+    ini_is_alive = os.path.exists(config_file)
+
+    # .ini Dosyasına kaydedilebilir formata getirmek
     _start_number_ = str(start_number_)
     _user_end_number_ = str(user_end_number_)
     _user_min_value_ = str(user_min_value_)
     _last_digit_ = str(last_digit_)
     _new_created_file_name_ = str(new_created_file_name_)
-    _loaded_list = 'saved_prime_list0.pkl'
-    _marginal_error = str(marginal_error)
 
-    # 'Settings' bölümünü ekleyin
-    config.add_section('Settings')
-    config.add_section('Recommended Settings')
+    # .ini yok ise oluştur
+    if not ini_is_alive:
+        config.add_section('Settings')
+        config.add_section('Recommended Settings')
+
+        # Değişen değerleri oluştur
+        config.set('Recommended Settings', 'marginal-error', '10')
+        config.set('Settings', 'current-loading-pkl-name', 'saved_prime_list0.pkl')
+
+    config.read(config_file)  # .ini dosyasını oku
+
+    # Değiştirilebilir değerler .ini içerisinden ayarlanabilir değerler
+    _loaded_prime_list_name = config.get('Settings', 'current-loading-pkl-name')
+    _marginal_error = config.get('Recommended Settings', 'marginal-error')
 
     # Değişen değerler
     config.set('Settings', 'start-number', _start_number_)
@@ -69,7 +76,7 @@ def update_ini_():
     config.set('Settings', 'last-calculated-num', _user_min_value_)
     config.set('Settings', 'count-of-pkl', _last_digit_)
     config.set('Settings', 'current-saving-pkl-name', _new_created_file_name_)
-    config.set('Settings', 'current-loading-pkl-name', _loaded_list)
+    config.set('Settings', 'current-loading-pkl-name', _loaded_prime_list_name)
 
     # Önerilen değerler
     config.set('Recommended Settings', 'cpu-count', '4')
@@ -80,8 +87,11 @@ def update_ini_():
         # .ini dosyasını oluşturun
         with open('config.ini', 'w') as configfile:
             config.write(configfile)
-    except Exception as ex:
-        raise print(f".ini file create error: {ex}")
+
+    except configparser.ParsingError as ex:
+        print(f"Error parsing .ini file: {ex}")
+    except Exception as es:
+        print(f"Error updating .ini file: {es}")
 
 
 def read_ini_():
@@ -91,11 +101,12 @@ def read_ini_():
     global user_min_value_
     global last_digit_
     global new_created_file_name_
+    global loaded_prime_list_name
     global marginal_error
 
     config = configparser.ConfigParser()
 
-    # .ini dosyasını okuyun
+    # .ini dosyasını okur
     config.read('config.ini')
 
     _start_number_ = config.get('Settings', 'start-number')
@@ -111,8 +122,10 @@ def read_ini_():
     user_end_number_ = int(_user_end_number_)
     user_min_value_ = int(_user_min_value_)
     last_digit_ = int(_last_digit_)
-
     new_created_file_name_ = _new_created_file_name
+
+    # Değiştirilebilir değerleri yükle.
+    loaded_prime_list_name = _loaded_list_
     marginal_error = int(_marginal_error)
 
 
@@ -169,8 +182,7 @@ def create_new_pkl_file_():
 
 
 def take_user_number():
-    global user_end_number_
-    global start_number_
+    global user_end_number_, start_number_
 
     print("""
     This program has been developed with a new algorithm to find prime numbers faster,
@@ -188,14 +200,14 @@ def take_user_number():
     while True:
         try:
             start_number_ = int(input(f"Enter a ODD positive start number(default: number>={user_min_value_}): "))
-            user_end_number_ = int(input(f"Enter a ODD last number (default: number>={user_min_value_ + 100}): "))
-
+            user_end_number_ = int(input(f"Enter a ODD last number: "))
+            start_number_ = min(start_number_, user_min_value_)   # Kullanıcı dostu bir seçim
             if start_number_ <= 0 or user_end_number_ <= 0 or start_number_ >= user_end_number_:
                 raise ValueError
             if start_number_ % 2 == 0 or user_end_number_ % 2 == 0:
                 raise print("Please Enter two ODD number.")
             if start_number_ < user_min_value_:
-                raise print(f"You have already worked in this range >{user_min_value_}")
+                raise print(f"You have already worked in this range enter the end number; >{user_min_value_}")
             if user_end_number_ <= user_min_value_:
                 user_end_number_ = user_min_value_ + 100
                 print(f"Default choice for the last number: {user_min_value_ + 100}")
@@ -212,25 +224,25 @@ def approx_calculation_of_probability() -> None:
     global start_number_
 
     average_prime_ = (user_end_number_ / math.log(user_end_number_)) - (start_number_ / math.log(start_number_))
-    density_of_primes_ = 100 * (average_prime_ / (user_end_number_-start_number_))
+    density_of_primes_ = 100 * (average_prime_ / (user_end_number_ - start_number_))
 
-    print(f"Average prime number count between {(start_number_, user_end_number_)}≈ "
-          f" {int(average_prime_)}")
-    print(f"Density of prime between than {(start_number_, user_end_number_)}≈ %{int(density_of_primes_)}")
-    time.sleep(5)  # İncelenmek için 3sn bekler
+    print(f"\033[1mAverage prime number count between ≈ {int(average_prime_)}\033[1n")
+    print(f"\033[1mDensity of prime between than ≈ %{int(density_of_primes_)}\033[1n")
+    time.sleep(5)  # İncelenmek için 5sn bekler
 
 
 def load_with_this_value_prime_list():
     global last_digit_
     global loaded_list
     global temp_num_
+    global loaded_prime_list_name
 
     try:
-        with open(f'saved_prime_list0.pkl', 'rb') as saved_file:
+        with open(f'{loaded_prime_list_name}', 'rb') as saved_file:
             loaded_list = pickle.load(saved_file)
             return ":)"
     except Exception as ex:
-        print(f"\nsaved_prime_list{temp_num_}.pkl file is broken: {ex}")
+        print(f"\n{loaded_prime_list_name} file is broken: {ex}")
         print("Please Delete Broken and Empty Files. And Restart The Program")
 
 
@@ -239,45 +251,48 @@ def information_about_saved_pkl_():
     global last_digit_
     global user_min_value_
 
+    total_primes_ = 0  # Toplam hesaplanan Asal Sayı adedi
+
     for temp_num in range(0, last_digit_ + 1, 1):
         try:
             with open(f'saved_prime_list{temp_num}.pkl', 'rb') as dump_in_terminal:
                 dump_list = pickle.load(dump_in_terminal)
                 if not dump_list:
-                    raise print("_EmptyFile_")
+                    raise print("\033[1m_EmptyFile_\033[1n")
                 len_of_list = len(dump_list)
                 user_min_value_ = dump_list[-1]
+                total_primes_ += len_of_list
                 print(f'saved_prime_list{temp_num}.pkl;')
                 print(f"The prime number at the top of the list: {dump_list[0]}")
-                print(f"The prime number in the middle of the list: {dump_list[int(len_of_list / 2)]}")
                 print(f"The prime number at the end of the list: {dump_list[-1]}")
                 print(f"the list contains {len_of_list} prime numbers")
                 print("\n")
-            dump_in_terminal.close()
         except Exception as ex:
             print(f"saved_prime_list{temp_num}.pkl file is broken: {ex}")
             print("Please Delete Broken and Empty Files. And Restart The Program")
             print("\n")
-
-
-def kill_the_program():
-    # Diğer işlemler
-    print("Processing completed successfully.")
-    print(":) boom")
-    sys.exit()
+    print(f"\033[1mTotal number of calculated primes in the saved .pkl files: {total_primes_}\033[1n")
 
 
 def crop_the_list(list_: list) -> list:
     global user_end_number_
+    global marginal_error
 
-    sqrt_end = math.sqrt(user_end_number_) + 100
+    sqrt_end = math.sqrt(user_end_number_) + marginal_error
+
+    # Özel bir hata mesajı
+    if not list_[-1] > sqrt_end:
+        print(f"""\033[1m
+        Since the square root of {sqrt_end}, the last number you selected,
+        is greater than the last element of 'saved_prime_list0.pkl', the list
+        that tests for prime numbers, the process is terminated.
+
+        Solution: Load a larger prime checklist or merge two prime lists :)\033[1n
+        """)
+        sys.exit(1)
 
     # Orijinal listeyi değiştirmek yerine yeni bir liste oluştur
     cropped_list = [item for item in list_ if item <= sqrt_end]
-
-    if not cropped_list:
-        print("Load another list manually.")
-        sys.exit(1)
 
     return cropped_list
 
@@ -289,16 +304,22 @@ def save_prime_list(list_):
         print("List is empty. No need to save.")
         return
 
+    # Liste içinde listeler yapısını düzleştir.
     flat_results = [item for sublist in list_ for item in sublist
                     if item is not None and item <= user_end_number_]
 
+    # Özel bir durumdur.
+    if len(flat_results) == 1:
+        print("\033[1m No Prime Between Your Selected Range\033[1n")
+        kill_the_program()
+
+    # aSencron kaydedilen Asal sayılar sıralanır.
     flat_results = sorted(flat_results)
 
     try:
-        print(f"Saving: {flat_results[:10]}...{flat_results[-3:]}")
         with open(f'{new_created_file_name_}', 'wb') as temp_list:
             pickle.dump(flat_results, temp_list)
-        print(f"\nList saved successfully in --> {new_created_file_name_}")
+
     except Exception as ex:
         print(f"Saving Error: {ex}")
 
@@ -306,6 +327,7 @@ def save_prime_list(list_):
 def is_prime(number, primes):
     sqrt_of_num = None
 
+    # Aynı Anda Karekök Fonksiyonunu Meşgul Etmemeleri İçin
     with lock:
         sqrt_of_num = math.isqrt(number)
 
@@ -314,15 +336,14 @@ def is_prime(number, primes):
             return True
         if number % prime == 0:
             return False
-    print(f"Exeption number [PROGRAM CAN NOT DEFİNE IS PRIME OR NOT];"
-          f" {number}, RootOfNum: {sqrt_of_num}")
-    return False
+    print("Exeption number [PROGRAM CAN NOT DEFİNE IS PRIME OR NOT")
+    sys.exit(1)  # Bug Bölgesi [CriticArea]
 
 
 def worker(chunk, shared_primes):
     try:
-        start, end = chunk
-        local_results = []
+        start, end = chunk    # Gönerilen aralık oluşturulur ve paralel işlenir
+        local_results = []  # Her işçinin kendi kayıt listesi
 
         for number in range(start, end + 2, 2):
             if is_prime(number, shared_primes):
@@ -344,7 +365,7 @@ def choose_cpu_count():
     More CPU can lead to Faster processing but might require additional system resources.
 
     Total CPU count: {mp_count}
-    Recommended range: {mp_count // 2} - {mp_count}
+    Recommended range: [{mp_count // 2}, {mp_count}]
 
     Choose a value based on your system's capabilities:
     - If you have a powerful system, you can experiment with higher values for faster processing.
@@ -359,7 +380,7 @@ def choose_cpu_count():
 
         while True:
             cpu_count_ = int(input("Enter the number of CPUs to use for the process: "))
-
+            cpu_count_ = min(cpu_count_, mp_count//2)   # min cpu kullanıcıya göre seç
             if cpu_count_ < mp_count // 2 or cpu_count_ > mp_count:
                 raise ValueError(f"Invalid choice! Please enter a value between {mp_count // 2} and {mp_count}.")
 
@@ -378,14 +399,14 @@ def choose_cpu_count():
 
 
 def chose_num_of_chunks():
-
     print("""
     \033[1mIf you're unsure about the optimal choice, consider the following:
 
     More CHUNKS can lead to Faster processing but might require additional system resources.
     Fewer CHUNKS might be slower but can be more resource-efficient.
 
-    Recommended Value Range: 4-6
+    Recommended Value Range: [4, 8]
+    Max Value Range: 12
 
     Choose a value based on your system's capabilities:
     - If you have a powerful system, you can experiment with higher values for faster processing.
@@ -396,12 +417,12 @@ def chose_num_of_chunks():
 
     try:
         mp_count = multiprocessing.cpu_count()
-        print(f"\nTotal CPU count: {mp_count}")
+        print(f"\033[1m             Total CPU count: {mp_count}\033[0m")
 
         while True:
             chunk_count = int(input("Enter the number of chunks to divide the task into: "))
-
-            if chunk_count > mp_count or chunk_count <= 0 or chunk_count > 8:
+            chunk_count = min(chunk_count, 4)   # Kullanıcının seçimini min 4 olarak seç
+            if chunk_count > mp_count or chunk_count <= 0 or chunk_count > 12:
                 raise ValueError(f"Invalid choice! Please enter a value between {mp_count // 2} and 8.")
 
             print(f"We are going to use {chunk_count} chunks to distribute the task.")
@@ -419,23 +440,20 @@ def chose_num_of_chunks():
 
 
 def chunks_grouped(slice_count):
+    # Artık sadece tek sayı olanlar tutulacak şekilde düzenlendi
     global start_number_, user_end_number_
 
     # Listeyi oluştur
-    chunk_list = [(i, i + 999) for i in range(start_number_, user_end_number_ + 2, 1000)]
+    chunk_list = [(i, i + 1000) for i in range(start_number_, user_end_number_ + 2, 1000)]
 
     # Liste parçalanmalarını belirle
     chunk_size = len(chunk_list) // slice_count
-    remainder = len(chunk_list) % slice_count
 
     # chunks elemanlarını her biri slice_count adet gruplar halinde alt listelere böl
-    chunks = [chunk_list[i * chunk_size:(i + 1) * chunk_size] for i in range(slice_count)]
+    chunks = [chunk_list[i * slice_count:(i + 1) * slice_count] for i in range(chunk_size + 1) if
+              len(chunk_list[i * slice_count:(i + 1) * slice_count]) > 0 or i * slice_count >= chunk_size]
 
-    # Eğer remainder varsa, kalanı sonuncu chunk'a ekle
-    if remainder:
-        chunks[-1] += chunk_list[-remainder:]
-
-    return [tuple(chunk) for chunk in chunks]   # Listeyi dön
+    return [tuple(chunk) for chunk in chunks]  # Listeyi dön
 
 
 def len_of_the_chunk() -> int:
@@ -452,37 +470,21 @@ def len_of_the_chunk() -> int:
 def main() -> None:
     global loaded_list, start_number_
 
-    # Kullanılacak cpu sayısı
-    num_processes = choose_cpu_count()
-
-    # Aynı anda işlenecek chunk sayısı (Balanced)
-    num_of_chunks = chose_num_of_chunks()
-
-    # Yüklü Asal Sayı Listesini Kırpmak
-    cropped_list_ = crop_the_list(loaded_list)
-
-    # Süreyi başlat.
-    start_time = time.time()
-
-    # Parçalanacak aralığın uzunluğunu bul
-    len_of_chunks: int = len_of_the_chunk()
+    num_processes = choose_cpu_count()  # Kullanılacak cpu sayısını seç
+    num_of_chunks = chose_num_of_chunks()  # Aynı anda işlenecek chunk sayısı (Balanced)
+    cropped_list_ = crop_the_list(loaded_list)  # Yüklü Asal Sayı Listesini Kırpmak
+    start_time = time.time()  # Süreyi başlat.
+    len_of_chunks: int = len_of_the_chunk()  # Parçalanacak aralığın uzunluğunu bul
 
     # Paralel işlemeye başla.
     with Pool(processes=num_processes) as pool:
-        # Her bir chunk grubunun max(num_of_chunks) listesini tutar
-        chunk_results = []
 
-        # tqdm ile progress bar oluşturun
-        pbar = tqdm(total=len_of_chunks, desc="Processing Chunks", position=0, leave=True)
+        chunk_results = []  # Her bir chunk grubunun max(num_of_chunks) listesini tutar
+        pbar = tqdm(total=len_of_chunks, desc="Processing Chunks", position=0, leave=True)  # progress bar oluştur
 
-        # chunks_grouped(list, division-num) ile liste division-num'er Chunk olacak şekilde parçalanır
         # Parçalanmış chunks listesini alt(num_of_chunks) parçalara böl
         for chunk_group in chunks_grouped(num_of_chunks):
 
-            if not len(chunk_group):
-                continue  # Liste boşsa ya da verilen sınırın dışında ise sırada ki elemanı dene.
-
-            # Hata ayıklama bloğu
             try:
                 # chunk_group tuplesi paralel aSencron işlenir
                 results_list = [
@@ -490,46 +492,34 @@ def main() -> None:
                     for chunk in chunk_group
                 ]
 
+                # Sonuçları toplamak için bekleyin
+                chunk_results += [result.get() for result in results_list]
+
+                if 1 == pbar.n % 6 or pbar.total <= pbar.n:
+                    # Hesaplanan değerler anlık olarak kaydediliyor
+                    save_prime_list(chunk_results)
+
             except Exception as e:
                 # Multiprocessing hatası durumunda programı sonlandır
                 print(f"An error occurred in multiprocessing: {e}")
                 raise SystemExit
 
-            # Sonuçları toplamak için bekleyin
-            chunk_results += [result.get() for result in results_list]
-
-            save_prime_list(chunk_results)  # Chunk Kaydet
-            chunk_results = []  # Listeyi boşalt
-            # Manuel Bellek Temizliği.
-            clean_memory()
-
-        # İşlem tamamlandığında None değer ve alt listeler silinir
-        flat_results = [item for sublist in chunk_results for item in sublist
-                        if item is not None and item <= user_end_number_]
-
-    # Sıralanmış liste
-    final_results = sorted(flat_results)
-
-    # Manuel Bellek Temizliği.
-    clean_memory()
-
-    # Sıralanmış listenin bir kısmı
-    print(f"Final Result: {final_results[:5]}...{final_results[-5:]}")
-
-    # Listeyi kaydet.
-    save_prime_list(flat_results)
-
-    # Manuel Bellek Temizliği.
-    clean_memory()
-
     # Toplam çalışma süresi
     finish_time = time.time()
-    print(f"Total Calc. Time: {finish_time - start_time} second(s) / "
-          f"{(finish_time - start_time)/60} minute")
+    print(f"\033[1mTotal Calc. Time: {finish_time - start_time} second(s) / "
+          f"{(finish_time - start_time) / 60} minute\033[1n")
 
-    # Bilgi ver.
-    information_about_saved_pkl_()
-    kill_the_program()
+    save_prime_list(chunk_results)  # Son defa kaydet
+
+    information_about_saved_pkl_()  # Bilgi ver.
+    kill_the_program()  # Programı sonlandır
+
+
+def kill_the_program():
+    # Diğer işlemler
+    print("Processing completed successfully.")
+    print("\033[1m:) boom\033[1n")
+    sys.exit(1)
 
 
 if __name__ == '__main__':
