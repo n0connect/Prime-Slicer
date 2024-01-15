@@ -2,6 +2,41 @@
 
 Prime-Slicer, belirli bir aralıktaki asal sayıları paralel programlama ile bulan Python programıdır.
 
+## Kullanılan Asal Sayı Bulma Algoritması
+
+Bu proje, belirli bir aralıktaki asal sayıları bulmak için bir algoritma kullanır. Asal sayılar, yalnızca 1 ve kendisi tarafından bölünebilen sayılardır. Proje, belirtilen bir başlangıç ve bitiş sayısı arasındaki tek sayıları seçer ve bu sayıları daha önce kaydedilmiş olan bir asal sayı listesi ile kontrol eder.
+
+### Asal Sayı Listesi
+
+Varsayılan olarak, projenin başlangıcında bir asal sayı listesi oluşturulur ve bu liste "saved_prime_list0.pkl" dosyasında saklanır. Bu liste, daha önceki hesaplamaların birikimi olarak elde edilir ve asal sayıları içerir. Kullanıcılar, bu kaydedilmiş listeyi kullanarak daha hızlı hesaplamalar yapabilirler.
+
+Asal sayı listesi her başlangıçta bir dosyada saklanır. Ancak, dosyanın boyutu belirli bir sınırı aştığında (örneğin, 1MB), yeni bir asal sayı listesi oluşturulur. Örneğin, "saved_prime_list0.pkl" dosyası 1MB'ı geçerse, bir sonraki hesaplama işlemi için yeni bir liste "saved_prime_list1.pkl" adında oluşturulur.
+
+Bu, hem bellek kullanımını optimize etmek hem de daha büyük asal sayıları saklamak için dinamik bir listeleme yöntemini sağlar.
+
+Kullanıcılar, her program başladığında dosya boyutunu kontrol etme özelliği sayesinde, her seferinde en güncel ve uygun asal sayı listesini kullanabilirler.
+
+
+### Algoritmanın İşleyişi
+
+1. Belirtilen aralıktaki tek sayıları seç.
+2. Her bir seçilen sayıyı, daha önce kaydedilmiş asal sayı listesi ile kontrol et.
+3. Eğer seçilen sayı, hiçbir asal sayıya tam olarak bölünmezse, o sayıyı asal olarak kabul et.
+4. Asal sayıları biriktir ve sonuç listesini oluştur.
+
+### Kümulatif Hesaplama
+
+Bu proje, kümulatif bir şekilde asal sayıları hesaplayabilir. Her hesaplama işlemi sonrasında elde edilen asal sayılar, bir sonraki hesaplama işlemi için temel oluşturur. Kullanıcılar, son hesaplanan asal sayının karesi kadar olan bir aralıkta yeni asal sayıları hesaplamak için bu özelliği kullanabilirler.
+
+### Kaydedilmiş Liste Kullanımı
+
+Kullanıcılar, belirli bir aralıktaki asal sayıları daha hızlı hesaplamak için kaydedilmiş asal sayı listesini kullanabilirler. Bu, projenin daha önceki hesaplamalarını kullanarak işlem süresini optimize etmelerine olanak tanır.
+
+### Nasıl Kullanılır
+
+Projeyi başlatırken, kullanıcılardan belirli bir aralık ve hesaplama için kullanılacak CPU sayısı gibi girişler alınır. Kullanıcılar, aynı zamanda asal sayı listesini kullanıp kullanmama konusunda da tercih yapabilirler.
+
+
 ## Çalışma Ortamı
 
 - **Python Sürümü:** 3.12.1
@@ -11,6 +46,12 @@ Prime-Slicer, belirli bir aralıktaki asal sayıları paralel programlama ile bu
     - Çekirdek Sayısı: 6
     - Mantıksal İşlemci Sayısı: 12
   - **RAM:** 16GB
+
+
+Algoritma şu adımları içerir:
+1. Belirtilen aralıktaki tek sayıları seç.
+2. Kaydedilmiş asal sayı listesindeki asal sayılarla böl.
+3. Kareköküne kadar olan asal sayılara kadar kontrol yap ve tam bölünmezse sayı asal kabul edilir.
 
 ## Kullanılan Kütüphaneler ve Modüller
 
@@ -38,7 +79,24 @@ Program çalıştığında, işlemin durumunu ve hesaplanan asal sayıları içe
 -> saved_prime_list0.pkl
 
 ## Proje Durumu
-STABIL
+
+**Durum:** Stabil
+
+Projenin mevcut durumu stabildir, yani temel işlevselliği sağlamaktadır ve beklenen sonuçları başarıyla üretmektedir. Ancak, projede sürekli iyileştirmeler ve ek özellikler eklemeye devam ediyorum.
+
+**Gelecek Geliştirmeler:**
+- Asal sayı hesaplama algoritmasının daha fazla optimize edilmesi
+- Kullanıcı arayüzünde geliştirmeler ve interaktif özellikler eklenmesi
+- Kullanıcının tercihlerini saklamak için daha fazla yapılandırma seçeneği
+- Performans iyileştirmeleri ve hata düzeltmeleri
+
+Bu projeyi geliştirme sürecindeyim.
+
+## İletişim
+
+Eğer proje ile ilgili herhangi bir soru, öneri veya geri bildiriminiz varsa benimle iletişime geçebilirsiniz.
+
+- **E-posta:** niceshotfree@gmail.com
 
 ## Lisans
 
