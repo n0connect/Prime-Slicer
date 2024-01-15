@@ -1,7 +1,5 @@
 # Prime-Slicer
 
-# Prime Number Visualizer
-
 Prime Number Visualizer, belirli bir aralıktaki asal sayıları bulan ve görselleştiren bir Python programıdır.
 
 ## Kullanım
