@@ -1,4 +1,4 @@
-from multiprocessing import Lock, Pool  # Paralel programlama için Lock, ve İşlem havuzu Pool
+from multiprocessing import Lock, Pool, Manager  # Paralel programlama için Lock, ve İşlem havuzu Pool
 import multiprocessing  # Paralel programlama
 from tqdm import tqdm  # ProcessBar
 import configparser  # .ini Dosyası oluşturmak için
@@ -279,10 +279,10 @@ def crop_the_list(list_: list) -> list:
     global user_end_number_
     global marginal_error
 
-    sqrt_end = math.sqrt(user_end_number_) + marginal_error
+    sqrt_end = math.sqrt(user_end_number_) + marginal_error + 100
 
     # Özel bir hata mesajı
-    if not list_[-1] > sqrt_end:
+    if not sqrt_end <= list_[-1]:
         print(f"""\033[1m
         Since the square root of {sqrt_end}, the last number you selected,
         is greater than the last element of 'saved_prime_list0.pkl', the list
@@ -326,17 +326,17 @@ def save_prime_list(list_):
 
 
 def is_prime(number, primes):
-    sqrt_of_num = None
+    #sqrt_of_num = None
 
-    # Aynı Anda Karekök Fonksiyonunu Meşgul Etmemeleri İçin with lock:
     sqrt_of_num = math.isqrt(number)
 
     for prime in primes:
-        if prime > sqrt_of_num:
+        if sqrt_of_num <= prime:
             return True
         if number % prime == 0:
             return False
-    print("Exeption number [PROGRAM CAN NOT DEFİNE IS PRIME OR NOT")
+
+    print(f"Exeption number {number}, {sqrt_of_num}, {primes[-1]} [PROGRAM CAN NOT DEFİNE IS PRIME OR NOT]")
     sys.exit(1)  # Bug Bölgesi [CriticArea]
 
 
@@ -345,7 +345,7 @@ def worker(chunk, shared_primes):
         start, end = chunk  # Gönerilen aralık oluşturulur ve paralel işlenir
         local_results = []  # Her işçinin kendi kayıt listesi
 
-        for number in range(start, end + 2, 2):
+        for number in range(start, end + 1, 2):
             if is_prime(number, shared_primes):
                 local_results.append(number)
     except Exception as e:
@@ -394,6 +394,9 @@ def choose_cpu_count():
         print("Please enter a valid integer between the recommended range.")
         return choose_cpu_count()
 
+    except KeyboardInterrupt:
+        sys.exit(0)
+
     except Exception as ex:
         print(f"An unexpected error occurred: {ex}")
         print("Please try again.")
@@ -437,6 +440,9 @@ def chose_num_of_chunks():
         print(f"Error: {ve}")
         print("Please enter a valid integer between the recommended range.")
         return chose_num_of_chunks()
+
+    except KeyboardInterrupt:
+        sys.exit(0)
 
     except Exception as ex:
         print(f"An unexpected error occurred: {ex}")
@@ -483,15 +489,13 @@ def main() -> None:
 
     # Paralel işlemeye başla.
     with Pool(processes=num_processes) as pool:
-
-        chunk_results = []  # Her bir chunk grubunun max(num_of_chunks) listesini tutar
+        chunk_results = []
         pbar = tqdm(total=len_of_chunks, desc="Processing Chunks", position=0, leave=True)  # progress bar oluştur
 
         # Parçalanmış chunks listesini alt(num_of_chunks) parçalara böl
         for chunk_group in chunks_grouped(num_of_chunks):
 
-            try:
-                # chunk_group tuplesi paralel aSencron işlenir
+            try:    # chunk_group tuplesi paralel aSencron işlenir
                 results_list = [
                     pool.apply_async(worker, args=(chunk, cropped_list_), callback=lambda _: pbar.update(1))
                     for chunk in chunk_group
@@ -500,14 +504,12 @@ def main() -> None:
                 # Sonuçları toplamak için bekleyin
                 chunk_results += [result.get() for result in results_list]
 
-                if 1 == pbar.n % 6 or pbar.total <= pbar.n:
-                    # Hesaplanan değerler anlık olarak kaydediliyor
-                    save_prime_list(chunk_results)
-
             except Exception as e:
                 # Multiprocessing hatası durumunda programı sonlandır
                 print(f"An error occurred in multiprocessing: {e}")
                 raise SystemExit
+            except KeyboardInterrupt:
+                sys.exit(0)  # CTRL + C SONLANDIR
 
     # Toplam çalışma süresi
     finish_time = time.time()
