@@ -1,6 +1,6 @@
 from multiprocessing import Lock, Pool  # Lock:Senkronizasyon Pool:İşlemHavuzu Manager:PaylaşımlıListe
 import multiprocessing  # Paralel programlama işlemleri için kullandığım modül.
-import numpy as np  # numPy ile optimizasyon.
+import numpy as np  # numPy ile optimiznumasyon.
 from tqdm import tqdm  # ProcessBar oluşturmak için kullandığım modül.
 import configparser  # .ini Dosyası oluşturmak için kullandığım modül.
 import pickle  # Belirlenen asal sayıları kaydedip, yükleyen modül.
@@ -38,7 +38,7 @@ def start_program():
 def file_size_control():
     # Program ilk çalıştığında kaydedilen .pkl dosyalarını kontrol eder
     global new_created_file_name_
-    global last_digit_
+    global last_digit_, last_digits_list_
 
     try:
         print(f"_" * 60)  # FOR GOOD SEEN
@@ -508,15 +508,10 @@ def len_of_the_chunk() -> int:
 
 def is_prime(number, primes):
 
-    try:
-        sqrt_of_num = 100 + np.sqrt(number).astype(int)   # marginal-error
+    sqrt_of_num = marginal_error + np.sqrt(number).astype(int)
 
-        # Bölünürse asal değildir False, aksi halde True
-        presence_of_divisors = np.any(np.mod(number, primes[primes <= sqrt_of_num]) == 0)
-
-    except Exception as ex:
-        print(f"An error in prime function: {ex}")
-        sys.exit(1)
+    # Bölünürse asal değildir False, aksi halde True
+    presence_of_divisors = np.any(np.mod(number, primes[primes <= sqrt_of_num]) == 0)
 
     return ~presence_of_divisors  # ~0=1
 
@@ -571,8 +566,6 @@ def main() -> None:
             except Exception as e:
                 print(f"An error occurred in multiprocessing in main function: {e}")
                 raise SystemExit
-            except KeyboardInterrupt:
-                sys.exit(0)  # CTRL + C SONLANDIR
 
     finish_time = time.time()   # Toplam çalışma süresi
     ex_time = time.time()  # Saving işlem süresi
