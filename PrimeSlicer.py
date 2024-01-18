@@ -8,10 +8,10 @@ import os  # Windows üzerinde işlemler gerçekleştiren modül.
 import sys  # Sistem üzerinde işlemler gerçekleştiren modül.
 import time  # Zaman kontolünü sağlayan modül.
 
-
 # GLOBAL VARIABLES
 user_end_number_: int  # Kullanıdan alınan bitiş değerini bellekte tutar.
 start_number_: int  # Kullanıdan alınan bailangıç değerini bellekte tutar.
+last_digits_list_ = []  # Son kaydedilen .pkl dosyalarının sayı değerini bellekte tutar.
 last_digit_ = 0  # Son kaydedilen .pkl dosyasının sayı değerini bellekte tutar.
 temp_num_ = 0  # Yüklenilen .pkl dosyasının sayı değerini bellekte tutar.
 loaded_list: list  # Kontrol için yüklenen .pkl dosyası bu listede tutulur.
@@ -43,21 +43,25 @@ def file_size_control():
     try:
         print(f"_" * 60)  # FOR GOOD SEEN
         saved_files_list = os.listdir(os.getcwd())  # Dizinde ki dosyaları al
+
         for file in saved_files_list:
             if file.endswith('.pkl'):  # .pkl olanları seç
-                last_saved_file = file  # Kaydedilen .pkl son elemanı
+
+                remove_character_in_file_name(file)  # Son kaydedilen sayıyı al ör:5
                 print(f"Saved Prime list {file}: {os.stat(file).st_size / (1024 ** 2)} MB")  # Boyut Kontrolü
                 print(f"_" * 60)  # Sadece görsellik için
+
+        last_digit_ = int(max(last_digits_list_))
+        last_saved_file = f'saved_prime_list{last_digit_}.pkl'
 
         if 20 <= os.stat(last_saved_file).st_size / (1024 ** 2):  # Boyutu 20MB fazla ise
 
             print(f"{last_saved_file:>30} size is max.")
             print(f"_" * 60)
-            last_digit_ = remove_character_in_file_name(last_saved_file)  # Son kaydedilen sayıyı al ör:5
             new_created_file_name_ = f'saved_prime_list{last_digit_ + 1}.pkl'  # Yeni .pkl dosyası 6 olur
             create_new_pkl_file_()  # yeni .pkl oluştur
         else:
-            last_digit_ = remove_character_in_file_name(last_saved_file)  # Son .pkl sayısını al ör:5
+
             new_created_file_name_ = f'{last_saved_file}'  # Son .pkl ile işleme devam edilir ör:5
 
         # Dosyalar Hakkında Bilgi Yazdırmak
@@ -307,12 +311,11 @@ def chose_range_of_chunks():
 
 
 def remove_character_in_file_name(last_saved_file):
+    global last_digits_list_
 
     # Kaç tane .pkl dosyasının kayıtlı olduğu sayısıdır.
     digits = ''.join(char for char in last_saved_file if char.isdigit())
-    digits = int(digits)
-
-    return digits
+    last_digits_list_.append(int(digits))
 
 
 def create_new_pkl_file_():
@@ -321,8 +324,8 @@ def create_new_pkl_file_():
 
     try:
         with open(f'saved_prime_list{last_digit_ + 1}.pkl', 'wb') as my_new_pkl:
-            pass
-        my_new_pkl.close()
+            print(f"Created New .PKL: saved_prime_list{last_digit_ + 1}")
+            my_new_pkl.close()
     except Exception as ex:
         print(f"saved_prime_list{last_digit_ + 1}.pkl is not created: {ex}")
 
@@ -403,7 +406,7 @@ def information_about_saved_pkl_():
 
     total_primes_ = 0  # Toplam hesaplanan Asal Sayı adedi
 
-    for temp_num in range(0, (last_digit_ + 1), 1):
+    for temp_num in range(0, (last_digit_ + 2)):
         try:
             with open(f'saved_prime_list{temp_num}.pkl', 'rb') as dump_in_terminal:
                 dump_list = pickle.load(dump_in_terminal)
