@@ -62,8 +62,8 @@ Algoritma şu adımları içerir:
 - **os:** İşletim sistemi ile ilgili işlemleri gerçekleştirmek için kullanılır.
 - **sys:** Python yürütme zamanı ile ilgili sistem bilgilerine erişim sağlamak için kullanılır.
 - **time:** Zaman ile ilgili işlemleri gerçekleştirmek için kullanılır.
-- **gc:** Manuel bellek temizleme işlemleri için kullanılır.
 - **configparser:** .ini dosyaları oluşturmak ve okumak için kullanılır.
+- **numpy:** C ve Fortran tabanlı optimizasyon ve vektörleştirme işlemleri için kullanılır.
 
 
 ## Kullanım
