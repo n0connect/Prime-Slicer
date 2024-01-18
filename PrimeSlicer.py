@@ -1,12 +1,13 @@
-from multiprocessing import Lock, Pool, Manager  # Paralel programlama için Lock, ve İşlem havuzu Pool
-import multiprocessing  # Paralel programlama
-from tqdm import tqdm  # ProcessBar
-import configparser  # .ini Dosyası oluşturmak için
-import math
-import pickle
-import os
-import sys
-import time
+from multiprocessing import Lock, Pool  # Lock:Senkronizasyon Pool:İşlemHavuzu Manager:PaylaşımlıListe
+import multiprocessing  # Paralel programlama işlemleri için kullandığım modül.
+import numpy as np  # numPy ile optimizasyon.
+from tqdm import tqdm  # ProcessBar oluşturmak için kullandığım modül.
+import configparser  # .ini Dosyası oluşturmak için kullandığım modül.
+import pickle  # Belirlenen asal sayıları kaydedip, yükleyen modül.
+import os  # Windows üzerinde işlemler gerçekleştiren modül.
+import sys  # Sistem üzerinde işlemler gerçekleştiren modül.
+import time  # Zaman kontolünü sağlayan modül.
+
 
 # GLOBAL VARIABLES
 user_end_number_: int  # Kullanıdan alınan bitiş değerini bellekte tutar.
@@ -17,7 +18,10 @@ loaded_list: list  # Kontrol için yüklenen .pkl dosyası bu listede tutulur.
 new_created_file_name_: str  # Yeni oluşan yada son kaydedilen .pkl dosyasının ismi.
 loaded_prime_list_name: str  # Asal sayı kontrolünü yapacak liste belirlenir.
 user_min_value_: int  # Kullanıcının girebileceği min başlangıç değeri.
-marginal_error: int = 10  # Karekök ve Algoritmik hatalardan kaçınmak için (default=10)
+marginal_error: int = 100  # Karekök ve Algoritmik hatalardan kaçınmak için (default=100)
+chunk_range: int  # İki chunk elemanı arasında ki uzaklık. (a, b) => b-a = chunk_range
+num_processes: int  # Kullanılacak işlemci sayısı
+num_of_chunks: int  # Kullanılacak Chunk sayısı
 
 lock = Lock()  # Paralel çalışan parçacıklar için kilit mekanizması
 
@@ -25,21 +29,49 @@ lock = Lock()  # Paralel çalışan parçacıklar için kilit mekanizması
 def start_program():
     file_size_control()
     take_user_number()
-    update_ini_()
-    read_ini_()
+    ini_file_update()
+    read_ini_file()
     approx_calculation_of_probability()
     load_with_this_value_prime_list()
 
 
-def update_ini_():
-    # Eğer .ini yoksa oluşturur
-    global start_number_
-    global user_end_number_
-    global user_min_value_
-    global last_digit_
+def file_size_control():
+    # Program ilk çalıştığında kaydedilen .pkl dosyalarını kontrol eder
     global new_created_file_name_
-    global loaded_prime_list_name
-    global marginal_error
+    global last_digit_
+
+    try:
+        print(f"_" * 60)  # FOR GOOD SEEN
+        saved_files_list = os.listdir(os.getcwd())  # Dizinde ki dosyaları al
+        for file in saved_files_list:
+            if file.endswith('.pkl'):  # .pkl olanları seç
+                last_saved_file = file  # Kaydedilen .pkl son elemanı
+                print(f"Saved Prime list {file}: {os.stat(file).st_size / (1024 ** 2)} MB")  # Boyut Kontrolü
+                print(f"_" * 60)  # Sadece görsellik için
+
+        if 20 <= os.stat(last_saved_file).st_size / (1024 ** 2):  # Boyutu 20MB fazla ise
+
+            print(f"{last_saved_file:>30} size is max.")
+            print(f"_" * 60)
+            last_digit_ = remove_character_in_file_name(last_saved_file)  # Son kaydedilen sayıyı al ör:5
+            new_created_file_name_ = f'saved_prime_list{last_digit_ + 1}.pkl'  # Yeni .pkl dosyası 6 olur
+            create_new_pkl_file_()  # yeni .pkl oluştur
+        else:
+            last_digit_ = remove_character_in_file_name(last_saved_file)  # Son .pkl sayısını al ör:5
+            new_created_file_name_ = f'{last_saved_file}'  # Son .pkl ile işleme devam edilir ör:5
+
+        # Dosyalar Hakkında Bilgi Yazdırmak
+        information_about_saved_pkl_()
+
+    except Exception as ex:
+        raise print(f"{ex}")
+
+
+def ini_file_update():
+    # Eğer .ini yoksa oluşturur
+    global start_number_, user_end_number_, user_min_value_
+    global last_digit_, new_created_file_name_, loaded_prime_list_name
+    global marginal_error, chunk_range, num_processes, num_of_chunks
 
     # Config nesnesi oluşturulur
     config = configparser.ConfigParser()
@@ -57,17 +89,30 @@ def update_ini_():
 
     # .ini yok ise oluştur
     if not ini_is_alive:
+        # Eğer .ini yoksa
+        choose_cpu_count()  # Kullanılacak cpu sayısını seç
+        chose_num_of_chunks()  # Aynı anda işlenecek chunk sayısı (Balanced)
+        chose_range_of_chunks()  # Chunk'ların aralığını belirler.
+
         config.add_section('Settings')
         config.add_section('Recommended Settings')
 
         # Değişen değerleri oluştur
-        config.set('Recommended Settings', 'marginal-error', '10')
+        config.set('Recommended Settings', 'marginal-error', '50')
+        config.set('Recommended Settings', 'chunk-range', str(chunk_range))
+        config.set('Recommended Settings', 'cpu-count', str(num_processes))
+        config.set('Recommended Settings', 'chunk-count', str(num_of_chunks))
         config.set('Settings', 'current-loading-pkl-name', 'saved_prime_list0.pkl')
+
+        # Gerekli set fonksiyonlarını çağır
 
     config.read(config_file)  # .ini dosyasını oku
 
     # Değiştirilebilir değerler .ini içerisinden ayarlanabilir değerler
     _loaded_prime_list_name = config.get('Settings', 'current-loading-pkl-name')
+    _chunk_range = config.get('Recommended Settings', 'chunk-range')
+    _cpu_count = config.get('Recommended Settings', 'cpu-count')
+    _chunk_count = config.get('Recommended Settings', 'chunk-count')
     _marginal_error = config.get('Recommended Settings', 'marginal-error')
 
     # Değişen değerler
@@ -79,8 +124,9 @@ def update_ini_():
     config.set('Settings', 'current-loading-pkl-name', _loaded_prime_list_name)
 
     # Önerilen değerler
-    config.set('Recommended Settings', 'cpu-count', '4')
-    config.set('Recommended Settings', 'chunk-count', '4')
+    config.set('Recommended Settings', 'cpu-count', _cpu_count)
+    config.set('Recommended Settings', 'chunk-count', _chunk_count)
+    config.set('Recommended Settings', 'chunk-range', _chunk_range)
     config.set('Recommended Settings', 'marginal-error', _marginal_error)
 
     try:
@@ -94,16 +140,12 @@ def update_ini_():
         print(f"Error updating .ini file: {es}")
 
 
-def read_ini_():
-    # .ini dosyasını oku
-    global start_number_
-    global user_end_number_
-    global user_min_value_
-    global last_digit_
-    global new_created_file_name_
-    global loaded_prime_list_name
-    global marginal_error
+def read_ini_file():
+    global start_number_, user_end_number_, user_min_value_
+    global last_digit_, new_created_file_name_, loaded_prime_list_name
+    global chunk_range, marginal_error, num_processes, num_of_chunks
 
+    # .ini dosyasını oku
     config = configparser.ConfigParser()
 
     # .ini dosyasını okur
@@ -116,12 +158,18 @@ def read_ini_():
     _new_created_file_name = config.get('Settings', 'current-saving-pkl-name')
     _loaded_list_ = config.get('Settings', 'current-loading-pkl-name')
     _marginal_error = config.get('Recommended Settings', 'marginal-error')
+    _chunk_range = config.get('Recommended Settings', 'chunk-range')
+    _chunk_count = config.get('Recommended Settings', 'chunk-count')
+    _cpu_count = config.get('Recommended Settings', 'cpu-count')
 
     # Değerler ile eşleştir
     start_number_ = int(_start_number_)
     user_end_number_ = int(_user_end_number_)
     user_min_value_ = int(_user_min_value_)
     last_digit_ = int(_last_digit_)
+    chunk_range = int(_chunk_range)
+    num_processes = int(_cpu_count)
+    num_of_chunks = int(_chunk_count)
     new_created_file_name_ = _new_created_file_name
 
     # Değiştirilebilir değerleri yükle.
@@ -129,44 +177,141 @@ def read_ini_():
     marginal_error = int(_marginal_error)
 
 
-def file_size_control():
-    # Program ilk çalıştığında kaydedilen .pkl dosyalarını kontrol eder
-    global new_created_file_name_
-    global last_digit_
+def choose_cpu_count():
+    global num_processes
+
+    mp_count = multiprocessing.cpu_count()
+
+    print(f"_" * 60)
+    print(f"""
+    If you're unsure about the optimal choice, consider the following:
+    More CPU can lead to Faster processing but might require additional system resources.
+
+    Choose a value based on your system's capabilities:
+    \033[1m- If you have a powerful system, you can experiment with higher values for faster processing.
+    - For resource-conscious use, stick to the recommended range or lower.\033[0m
+
+    Keep in mind that the ideal value may vary based on your \033[1m"specific hardware"\033[0m and workload.
+
+    \033[1mTotal CPU count: {mp_count}
+    Recommended range: [{mp_count // 2}, {mp_count}]\033[0m
+    """)
+    print(f"_" * 60)
 
     try:
-        print(f"_" * 60)  # FOR GOOD SEEN
-        saved_files_list = os.listdir(os.getcwd())  # Dizinde ki dosyaları al
-        for file in saved_files_list:
-            if file.endswith('.pkl'):  # .pkl olanları seç
-                last_saved_file = file  # Kaydedilen .pkl son elemanı
-                print(f"Saved Prime list {file}: {os.stat(file).st_size / (1024 ** 2)} MB")  # Boyut Kontrolü
-                print(f"_" * 60)  # Sadece görsellik için
+        mp_count = multiprocessing.cpu_count()
 
-        if 1 <= os.stat(last_saved_file).st_size / (1024 ** 2):  # Boyutu 1MB fazla ise
-            print(f"{last_saved_file:>30} size is max.")
+        while True:
+            num_processes = int(input("Enter the number of CPUs to use for the process: "))
+            num_processes = max(num_processes, mp_count // 2)  # min cpu kullanıcıya göre seç
+            if num_processes < mp_count // 2 or num_processes > mp_count:
+                raise ValueError(f"Invalid choice! Please enter a value between {mp_count // 2} and {mp_count}.")
             print(f"_" * 60)
-            last_digit_ = remove_character_in_file_name(last_saved_file)  # Son kaydedilen sayıyı al ör:5
-            new_created_file_name_ = f'saved_prime_list{last_digit_ + 1}.pkl'  # Yeni .pkl dosyası 6 olur
-            create_new_pkl_file_()  # yeni .pkl oluştur
-        else:
-            last_digit_ = remove_character_in_file_name(last_saved_file)  # Son .pkl sayısını al ör:5
-            new_created_file_name_ = f'{last_saved_file}'  # Son .pkl ile işleme devam edilir ör:5
+            print(f"\033[1mWe are going to use {num_processes} CPUs for the process.\033[0m")
+            time.sleep(2)  # incelemek için
+            break
 
-            # Dosyalar Hakkında Bilgi Yazdırmak
-        information_about_saved_pkl_()
+    except ValueError as ve:
+        print(f"Error: {ve}")
+        print("Please enter a valid integer between the recommended range.")
+        return choose_cpu_count()
+
+    except KeyboardInterrupt:
+        sys.exit(0)
 
     except Exception as ex:
-        raise print(f"{ex}")
+        print(f"An unexpected error occurred: {ex}")
+        print("Please try again.")
+        return choose_cpu_count()
+
+
+def chose_num_of_chunks():
+    global num_of_chunks
+
+    print(f"_" * 60)
+    print("""
+    If you're unsure about the optimal choice, consider the following:
+
+    More CHUNKS can lead to Faster processing but might require additional system resources.
+    Fewer CHUNKS might be slower but can be more resource-efficient.
+
+    \033[1mChoose a value based on your system's capabilities:
+    - If you have a powerful system, you can experiment with higher values for faster processing.
+    - For resource-conscious use, stick to the recommended range or lower.\033[0m
+
+    Keep in mind that the ideal value may vary based on your \033[1m"specific hardware"\033[0m and workload.
+
+    Recommended Value Range: \033[1m[4, 10]\033[0m
+    Max Value Range: \033[1m20\033[0m
+    """)
+    print(f"_" * 60)
+    try:
+        mp_count = multiprocessing.cpu_count()
+
+        while True:
+            num_of_chunks = int(input("\033[1mEnter the number of chunks to divide the task into: \033[0m"))
+            num_of_chunks = max(num_of_chunks, 4)  # Kullanıcının seçimini min 4 olarak seç
+            if num_of_chunks > mp_count or num_of_chunks <= 0 or num_of_chunks > 20:
+                raise ValueError(f"Invalid choice! Please enter a value between {mp_count // 2} and 8.")
+
+            print(f"\033[1mWe are going to use {num_of_chunks} chunks to distribute the task.\033[0m")
+            print(f"_" * 60)
+            time.sleep(2)  # İncelemek için.
+            break
+
+    except ValueError as ve:
+        print(f"Error: {ve}")
+        print("Please enter a valid integer between the recommended range.")
+        return chose_num_of_chunks()
+
+    except KeyboardInterrupt:
+        sys.exit(0)
+
+    except Exception as ex:
+        print(f"An unexpected error occurred: {ex}")
+        print("Please try again.")
+        return chose_num_of_chunks()
+
+
+def chose_range_of_chunks():
+    global chunk_range
+
+    print("""
+    \033[1mWhen using the program,
+    the intervals between the two entered numbers are divided into chunks based on the range you provide.
+
+    To optimize the program's performance, it is recommended to choose an even number for the chunk range
+    that is appropriate for your hardware. Make sure to enter an even chunk range to ensure the best results.
+    By increasing the range of chunks processed in parallel, each thread can perform more work, resulting
+    in a more efficient process. It is important to note that the total amount of work done with the specified
+    Chunk Range remains the same. However, this approach can help distribute the workload more evenly among workers,
+    avoiding overburdening any individual worker.\033[0m
+
+    Recommended Value's: {1000, 2000, 3000, 4000, 5000}
+    """)
+
+    while True:
+        try:
+            chunk_range = int(input("Enter the chunk range (default: \033[1m1000\033[0m): "))
+            if chunk_range % 2 != 0 or chunk_range <= 0 or chunk_range < 1000:
+                print("""
+                Please enter a valid number that meets the specified conditions.
+                If you do not know what you are doing, continue with the default value
+                """)
+                raise ValueError
+            print(f"_" * 60)
+            print(f"\033[1mWe are going to use {chunk_range} distribute the chunk's.\033[0m")
+            break  # Doğru ise döngüyü kır
+        except Exception as ex:
+            print(f"Exception Error: {ex}")
 
 
 def remove_character_in_file_name(last_saved_file):
+
     # Kaç tane .pkl dosyasının kayıtlı olduğu sayısıdır.
-    digits = ''.join(filter(str.isdigit, last_saved_file))
-    if digits:
-        digits = int(digits)
-    else:
-        digits = 0
+    digits = ''.join(char for char in last_saved_file if char.isdigit())
+    digits = int(digits)
+
     return digits
 
 
@@ -175,8 +320,9 @@ def create_new_pkl_file_():
     global last_digit_
 
     try:
-        with open(f'saved_prime_list{last_digit_ + 1}.pkl', 'wb') as new_pkl_:
-            new_pkl_.close()
+        with open(f'saved_prime_list{last_digit_ + 1}.pkl', 'wb') as my_new_pkl:
+            pass
+        my_new_pkl.close()
     except Exception as ex:
         print(f"saved_prime_list{last_digit_ + 1}.pkl is not created: {ex}")
 
@@ -220,16 +366,19 @@ def take_user_number():
 
 def approx_calculation_of_probability() -> None:
     # Yaklaşık Asal Miktarı ve Yoğunluğunu hesaplar
-    global user_end_number_
-    global start_number_
+    global user_end_number_, start_number_, num_processes
 
-    average_prime_ = (user_end_number_ / math.log(user_end_number_)) - (start_number_ / math.log(start_number_))
+    average_prime_ = (user_end_number_ / np.log(user_end_number_)) - (start_number_ / np.log(start_number_))
     density_of_primes_ = 100 * (average_prime_ / (user_end_number_ - start_number_))
     print(f"_" * 60)
     print(f"\033[1mAverage prime number count between ≈ {int(average_prime_)}\033[1n")
     print(f"\033[1mDensity of prime between than ≈ %{int(density_of_primes_)}\033[1n")
     print(f"_" * 60)
-    time.sleep(5)  # İncelenmek için 5sn bekler
+    print(f"\033[1mWe are going to use {num_processes} CPUs for the process.\033[0m")
+    print(f"\033[1mWe are going to use {num_of_chunks} chunks to distribute the task.\033[0m")
+    print(f"\033[1mWe are going to use {chunk_range} distribute the chunk's.\033[0m")
+    print(f"_" * 60)
+    time.sleep(7)  # İncelenmek için 7sn bekler
 
 
 def load_with_this_value_prime_list():
@@ -254,15 +403,15 @@ def information_about_saved_pkl_():
 
     total_primes_ = 0  # Toplam hesaplanan Asal Sayı adedi
 
-    for temp_num in range(0, last_digit_ + 1, 1):
+    for temp_num in range(0, (last_digit_ + 1), 1):
         try:
             with open(f'saved_prime_list{temp_num}.pkl', 'rb') as dump_in_terminal:
                 dump_list = pickle.load(dump_in_terminal)
-                if not dump_list:
-                    raise print("\033[1m_EmptyFile_\033[1n")
+
                 len_of_list = len(dump_list)
                 user_min_value_ = dump_list[-1]
                 total_primes_ += len_of_list
+
                 print(f'saved_prime_list{temp_num}.pkl;')
                 print(f"The prime number at the top of the list: {dump_list[0]}")
                 print(f"The prime number at the end of the list: {dump_list[-1]}")
@@ -271,53 +420,51 @@ def information_about_saved_pkl_():
         except Exception as ex:
             print(f"saved_prime_list{temp_num}.pkl file is broken: {ex}")
             print("Please Delete Broken and Empty Files. And Restart The Program")
+            print("\033[1m_EmptyFile_\033[1n")
             print(f"_" * 60)
     print(f"\033[1mTotal number of calculated primes in the saved .pkl files: {total_primes_}\033[1n")
 
 
-def crop_the_list(list_: list) -> list:
+def crop_the_list(list_: list):
     global user_end_number_
     global marginal_error
 
-    sqrt_end = math.sqrt(user_end_number_) + marginal_error + 100
+    sqrt_end = np.sqrt(user_end_number_).astype(int) + marginal_error
 
-    # Özel bir hata mesajı
+    # Özel bir hata mesajı fırlatır
     if not sqrt_end <= list_[-1]:
         print(f"""\033[1m
-        Since the square root of {sqrt_end}, the last number you selected,
-        is greater than the last element of 'saved_prime_list0.pkl', the list
-        that tests for prime numbers, the process is terminated.
+            Since the square root of {sqrt_end}, the last number you selected,
+            is greater than the last element of 'saved_prime_list0.pkl', the list
+            that tests for prime numbers, the process is terminated.
 
-        Solution: Load a larger prime checklist or merge two prime lists :)\033[1n
-        """)
+            Solution: Load a larger prime checklist or merge two prime lists :)\033[1n
+            """)
         sys.exit(1)
 
-    # Orijinal listeyi değiştirmek yerine yeni bir liste oluştur
-    cropped_list = [item for item in list_ if item <= sqrt_end]
+    # Performans için dtype ile dizeyi optimum boyutta tutar
+    optimum_list = np.array(list_)
+    optimum_list = optimum_list[optimum_list <= sqrt_end]
 
-    return cropped_list
+    return optimum_list
 
 
 def save_prime_list(list_):
+
     global new_created_file_name_
 
-    if not list_:
+    if not list:
         print("List is empty. No need to save.")
         return
 
-    # Liste içinde listeler yapısını düzleştir.
-    flat_results = [item for sublist in list_ for item in sublist
-                    if item is not None and item <= user_end_number_]
-
-    # Özel bir durumdur.
-    if len(flat_results) == 1:
-        print("\033[1m No Prime Between Your Selected Range\033[1n")
-        kill_the_program()
-
-    # aSencron kaydedilen Asal sayılar sıralanır.
-    flat_results = sorted(flat_results)
-
     try:
+        # Liste içinde listeler yapısını düzleştir.
+        flat_results = [item for sublist in list_ for item in sublist
+                        if item is not None and item <= user_end_number_]
+
+        # aSencron kaydedilen Asal sayılar sıralanır.
+        flat_results = sorted(flat_results)
+
         with open(f'{new_created_file_name_}', 'wb') as temp_list:
             pickle.dump(flat_results, temp_list)
 
@@ -325,169 +472,82 @@ def save_prime_list(list_):
         print(f"Saving Error: {ex}")
 
 
-def is_prime(number, primes):
-    #sqrt_of_num = None
-
-    sqrt_of_num = math.isqrt(number)
-
-    for prime in primes:
-        if sqrt_of_num <= prime:
-            return True
-        if number % prime == 0:
-            return False
-
-    print(f"Exeption number {number}, {sqrt_of_num}, {primes[-1]} [PROGRAM CAN NOT DEFİNE IS PRIME OR NOT]")
-    sys.exit(1)  # Bug Bölgesi [CriticArea]
-
-
-def worker(chunk, shared_primes):
-    try:
-        start, end = chunk  # Gönerilen aralık oluşturulur ve paralel işlenir
-        local_results = []  # Her işçinin kendi kayıt listesi
-
-        for number in range(start, end + 1, 2):
-            if is_prime(number, shared_primes):
-                local_results.append(number)
-    except Exception as e:
-        # Multiprocessing hatası durumunda programı sonlandır
-        print(f"An error occurred in multiprocessing: {e}")
-        raise SystemExit
-
-    return local_results
-
-
-def choose_cpu_count():
-    mp_count = multiprocessing.cpu_count()
-
-    print(f"_" * 60)
-    print(f"""
-    If you're unsure about the optimal choice, consider the following:
-
-    More CPU can lead to Faster processing but might require additional system resources.
-
-    \033[1mTotal CPU count: {mp_count}
-    Recommended range: [{mp_count // 2}, {mp_count}]\033[0m
-
-    Choose a value based on your system's capabilities:
-    \033[1m- If you have a powerful system, you can experiment with higher values for faster processing.
-    - For resource-conscious use, stick to the recommended range or lower.\033[0m
-
-    Keep in mind that the ideal value may vary based on your \033[1m"specific hardware"\033[0m and workload.
-    """)
-    print(f"_" * 60)
-
-    try:
-        mp_count = multiprocessing.cpu_count()
-
-        while True:
-            cpu_count_ = int(input("Enter the number of CPUs to use for the process: "))
-            cpu_count_ = max(cpu_count_, mp_count // 2)  # min cpu kullanıcıya göre seç
-            if cpu_count_ < mp_count // 2 or cpu_count_ > mp_count:
-                raise ValueError(f"Invalid choice! Please enter a value between {mp_count // 2} and {mp_count}.")
-            print(f"_" * 60)
-            print(f"\033[1mWe are going to use {cpu_count_} CPUs for the process.\033[0m")
-            time.sleep(2)  # incelemek için
-            return cpu_count_
-
-    except ValueError as ve:
-        print(f"Error: {ve}")
-        print("Please enter a valid integer between the recommended range.")
-        return choose_cpu_count()
-
-    except KeyboardInterrupt:
-        sys.exit(0)
-
-    except Exception as ex:
-        print(f"An unexpected error occurred: {ex}")
-        print("Please try again.")
-        return choose_cpu_count()
-
-
-def chose_num_of_chunks():
-    print("""
-    If you're unsure about the optimal choice, consider the following:
-
-    More CHUNKS can lead to Faster processing but might require additional system resources.
-    Fewer CHUNKS might be slower but can be more resource-efficient.
-    
-    \033[1mTotal CPU count: {mp_count}\033[0m
-    
-    Recommended Value Range: \033[1m[4, 8]\033[0m
-    Max Value Range: \033[1m12\033[0m
-
-    \033[1mChoose a value based on your system's capabilities:
-    - If you have a powerful system, you can experiment with higher values for faster processing.
-    - For resource-conscious use, stick to the recommended range or lower.\033[0m
-
-    Keep in mind that the ideal value may vary based on your specific hardware and workload.
-    """)
-    print(f"_" * 60)
-    try:
-        mp_count = multiprocessing.cpu_count()
-
-        while True:
-            chunk_count = int(input("\033[1mEnter the number of chunks to divide the task into: \033[0m"))
-            chunk_count = max(chunk_count, 4)  # Kullanıcının seçimini min 4 olarak seç
-            if chunk_count > mp_count or chunk_count <= 0 or chunk_count > 12:
-                raise ValueError(f"Invalid choice! Please enter a value between {mp_count // 2} and 8.")
-
-            print(f"\033[1mWe are going to use {chunk_count} chunks to distribute the task.\033[0m")
-            print(f"_" * 60)
-            time.sleep(2)   # İncelemek için.
-            return chunk_count
-
-    except ValueError as ve:
-        print(f"Error: {ve}")
-        print("Please enter a valid integer between the recommended range.")
-        return chose_num_of_chunks()
-
-    except KeyboardInterrupt:
-        sys.exit(0)
-
-    except Exception as ex:
-        print(f"An unexpected error occurred: {ex}")
-        print("Please try again.")
-        return chose_num_of_chunks()
-
-
 def chunks_grouped(slice_count):
-    # Artık sadece tek sayı olanlar tutulacak şekilde düzenlendi
-    global start_number_, user_end_number_
 
-    # Listeyi oluştur
-    chunk_list = [(i, i + 1000) for i in range(start_number_, user_end_number_ + 2, 1000)]
+    global start_number_, user_end_number_, chunk_range
 
-    # Liste parçalanmalarını belirle
-    chunk_size = len(chunk_list) // slice_count
+    try:
+        # Listeyi oluştur
+        chunk_list = [(i, i + chunk_range) for i in range(start_number_, user_end_number_ + 2, chunk_range)]
 
-    # chunks elemanlarını her biri slice_count adet gruplar halinde alt listelere böl
-    chunks = [chunk_list[i * slice_count:(i + 1) * slice_count] for i in range(chunk_size + 1) if
-              len(chunk_list[i * slice_count:(i + 1) * slice_count]) > 0 or i * slice_count >= chunk_size]
+        # Liste parçalanmalarını belirle
+        chunk_size = len(chunk_list) // slice_count
+
+        # chunks elemanlarını her biri slice_count adet gruplar halinde alt listelere böl
+        chunks = [chunk_list[i * slice_count:(i + 1) * slice_count] for i in range(chunk_size + 1) if
+                  len(chunk_list[i * slice_count:(i + 1) * slice_count]) > 0 or i * slice_count >= chunk_size]
+
+    except Exception as ex:
+        print(f"An error in group function: {ex}")
+        sys.exit(1)
 
     return [tuple(chunk) for chunk in chunks]  # Listeyi dön
 
 
 def len_of_the_chunk() -> int:
-    global start_number_, user_end_number_
+    # ProgresBar için gerekli total burada belirlenir.
+    global start_number_, user_end_number_, chunk_range
 
-    len_of_chunk: int = 0
+    len_ = len(np.arange(start_number_, user_end_number_ + 2, chunk_range))
 
-    for _ in range(start_number_, user_end_number_ + 2, 1000):
-        len_of_chunk += 1
+    return len_
 
-    return len_of_chunk
+
+def is_prime(number, primes):
+
+    try:
+        sqrt_of_num = 100 + np.sqrt(number).astype(int)   # marginal-error
+
+        # Bölünürse asal değildir False, aksi halde True
+        presence_of_divisors = np.any(np.mod(number, primes[primes <= sqrt_of_num]) == 0)
+
+    except Exception as ex:
+        print(f"An error in prime function: {ex}")
+        sys.exit(1)
+
+    return ~presence_of_divisors  # ~0=1
+
+
+def worker(args, shared_primes):
+    try:
+        # Gönerilen aralık oluşturulur ve paralel işlenir
+        start, end = args
+
+        # Dizeyi kıstır
+        numbers = np.arange(start, end + 2, 2)
+
+        # Kontrol Vektörler ile gerçekleşir; Her x: için bir maske oluşturur;
+        is_prime_mask = np.vectorize(lambda x: is_prime(x, shared_primes))(numbers)
+
+        # Maskesinde asal etiketi olanları alır.
+        local_results = numbers[is_prime_mask]
+
+    except Exception as e:
+        print(f"An error occurred in multiprocessing in worker function: {e}")
+        raise SystemExit
+    return local_results  # Her işçi kendi local listesini döndürür.
 
 
 def main() -> None:
     global loaded_list, start_number_
+    global num_processes, num_of_chunks
 
-    num_processes = choose_cpu_count()  # Kullanılacak cpu sayısını seç
-    num_of_chunks = chose_num_of_chunks()  # Aynı anda işlenecek chunk sayısı (Balanced)
     cropped_list_ = crop_the_list(loaded_list)  # Yüklü Asal Sayı Listesini Kırpmak
-    start_time = time.time()  # Süreyi başlat.
     len_of_chunks: int = len_of_the_chunk()  # Parçalanacak aralığın uzunluğunu bul
 
-    # Paralel işlemeye başla.
+    start_time = time.time()  # Süreyi başlat.
+
+    # Parallel işlemeye başla.
     with Pool(processes=num_processes) as pool:
         chunk_results = []
         pbar = tqdm(total=len_of_chunks, desc="Processing Chunks", position=0, leave=True)  # progress bar oluştur
@@ -495,7 +555,8 @@ def main() -> None:
         # Parçalanmış chunks listesini alt(num_of_chunks) parçalara böl
         for chunk_group in chunks_grouped(num_of_chunks):
 
-            try:    # chunk_group tuplesi paralel aSencron işlenir
+            try:
+                # chunk_group tuplesi paralel aSencron işlenir
                 results_list = [
                     pool.apply_async(worker, args=(chunk, cropped_list_), callback=lambda _: pbar.update(1))
                     for chunk in chunk_group
@@ -505,28 +566,34 @@ def main() -> None:
                 chunk_results += [result.get() for result in results_list]
 
             except Exception as e:
-                # Multiprocessing hatası durumunda programı sonlandır
-                print(f"An error occurred in multiprocessing: {e}")
+                print(f"An error occurred in multiprocessing in main function: {e}")
                 raise SystemExit
             except KeyboardInterrupt:
                 sys.exit(0)  # CTRL + C SONLANDIR
 
-    # Toplam çalışma süresi
-    finish_time = time.time()
-    print(f"\033[1mTotal Calc. Time: {finish_time - start_time} second(s) / "
+    finish_time = time.time()   # Toplam çalışma süresi
+    ex_time = time.time()  # Saving işlem süresi
+    save_prime_list(chunk_results)  # Hesaplanan asalları kaydet
+    information_about_saved_pkl_()  # Bilgi ver.
+    xe_time = time.time()  # Saving işlem süresi
+
+    print(f'ChunkResults: {chunk_results[:10]}...{chunk_results[-10:]}')
+
+    print(f"\033[1mTotal Calc. Time of Multiprocessing: {finish_time - start_time} second(s) / "
           f"{(finish_time - start_time) / 60} minute\033[1n")
 
-    save_prime_list(chunk_results)  # Son defa kaydet
+    print(f"\033[1mTotal Calc. Time of Program: {finish_time + xe_time - start_time - ex_time} second(s) / "
+          f"{(finish_time + xe_time - start_time - ex_time) / 60} minute\033[1n")
 
-    information_about_saved_pkl_()  # Bilgi ver.
     kill_the_program()  # Programı sonlandır
 
 
 def kill_the_program():
     # Diğer işlemler
     print("Processing completed successfully.")
+    print("\033[1m WabaLabaDubDub \033[0m")
     print("\033[1m:) boom\033[1n")
-    sys.exit(1)
+    sys.exit(0)
 
 
 if __name__ == '__main__':
