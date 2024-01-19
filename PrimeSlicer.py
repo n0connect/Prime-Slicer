@@ -47,7 +47,7 @@ def terminal_options(outputs, error_message_list):
             terminal_width, _ = shutil.get_terminal_size()
         except Exception as ex:
             # Her iki durumda da başarısız olursa hata mesajını yazdır
-            print(f"Error getting terminal size: {ex}")
+            print(f"Terminal size detection error: {ex}")
             return None
 
     break_point = terminal_width // 2  # Kesme noktası.
@@ -522,8 +522,9 @@ def details_of_stored_files_below():
                 data_text_list.append(data_text_tuple)  # Liste hakkında ki bilgileri ekle.
 
         except Exception as ex:
-            expectation_error = f'saved_prime_list{temp_num}.pkl file is broken: {ex}'
-            error_mesage_list.append(expectation_error)
+            if not temp_num == last_file_digit:
+                expectation_error = f'saved_prime_list{temp_num}.pkl file is broken: {ex}'
+                error_mesage_list.append(expectation_error)
 
     # Progess Bar işlemini tamamladı devredışı olsun ve bulunduğu satırı silsin.
     pbar.close()
