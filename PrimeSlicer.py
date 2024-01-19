@@ -486,7 +486,7 @@ def load_with_this_value_prime_list():
     global loaded_prime_list_name
 
     try:
-        with open(f'{loaded_prime_list_name}', 'rb') as saved_file:
+        with open(f'saved_prime_list0.pkl', 'rb') as saved_file:
             loaded_list = pickle.load(saved_file)
             return ":)"
     except Exception as ex:
@@ -637,6 +637,7 @@ def chunks_grouped(slice_count):
 def is_prime(number, primes):
 
     sqrt_number = np.sqrt(number+marginal_error).astype(int)
+
     # Bölünürse asal değildir False, aksi halde True
     presence_of_divisors = np.any(np.mod(number, primes[primes <= sqrt_number]) == 0)
 
@@ -676,17 +677,18 @@ def main() -> None:
         chunk_results = []
 
         # progress bar oluştur
-        pbar = tqdm(total=len_of_chunk, desc="Processing Chunks", position=0, leave=True)
+        pbar = tqdm(total=len_of_chunk, desc="Processing Chunks...", position=0, leave=True)
 
         # Parçalanmış chunks listesini alt(num_of_chunks) parçalara böl
         for chunk_group in chunks_grouped(num_of_chunks):
-
             try:
                 # chunk_group tuplesi paralel aSencron işlenir
                 results_list = [
-                    pool.apply_async(worker, args=(chunk, cropped_list_),
-                                     callback=lambda _: pbar.update(1)) for chunk in chunk_group
+                    pool.apply_async(worker, args=(chunk, cropped_list_)) for chunk in chunk_group
                 ]
+
+                # ProgessBar değerini arttır.
+                pbar.update(num_of_chunks)
 
                 # Işçi sonuçlarını listede toplamak için
                 chunk_results = [result.get() for result in results_list]
@@ -695,10 +697,11 @@ def main() -> None:
                 print(f"An error occurred in multiprocessing in main function: {e}")
                 raise SystemExit
 
+    pbar.close()  # Tamamlanan ProgressBar'ı Kapat.
     finish_time = time.time()  # Toplam çalışma süresi
     ex_time = time.time()  # Saving işlem süresi
-    print(f'ChunkResults: {chunk_results}')
     save_prime_list(chunk_results)  # Hesaplanan asalları kaydet
+    details_of_stored_files_below()  # Bilgi ver.
     xe_time = time.time()  # Saving işlem süresi
 
     # Tamamlanma sürelerini terminalde yazdır.
