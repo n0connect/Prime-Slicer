@@ -99,7 +99,7 @@ def terminal_options(outputs, error_message_list):
                     print(data_two_output1 + data_two_output2), print(data_three_output1 + data_three_output2)
                     print("_" * terminal_width)
                 else:
-                    print(output1), print(data_one_output1)
+                    print(output1), print(data_one_output1), print(data_two_output1)
                     print(data_three_output1), print("_" * terminal_width)
 
     if len(error_message_list) > 0:
