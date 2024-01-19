@@ -4,7 +4,6 @@ import numpy as np  # numPy ile optimiznumasyon.
 from tqdm import tqdm  # ProcessBar oluşturmak için kullandığım modül.
 import configparser  # .ini Dosyası oluşturmak için kullandığım modül.
 import pickle  # Belirlenen asal sayıları kaydedip, yükleyen modül.
-import copy  # Objeleri derinlemesine koyalayan modül.
 import os  # Windows üzerinde işlemler gerçekleştiren modül.
 import shutil  # Terminal boyutunu ileten modül.
 import sys  # Sistem üzerinde işlemler gerçekleştiren modül.
@@ -440,15 +439,19 @@ def take_user_number():
     """)
     while True:
         try:
+
             start_user_number = int(input(f"Enter a ODD positive start number(default: number>={user_min_value_}): "))
             end_user_number = int(input(f"Enter a ODD last number: "))
-            start_user_number = min(start_user_number, user_min_value_)  # Kullanıcı dostu bir seçim
+
             if start_user_number <= 0 or end_user_number <= 0 or start_user_number >= end_user_number:
-                raise ValueError
+                raise print("Please Enter the correct ODD number.")
+
             if start_user_number % 2 == 0 or end_user_number % 2 == 0:
                 raise print("Please Enter two ODD number.")
+
             if start_user_number < user_min_value_:
                 raise print(f"You have already worked in this range enter the end number; >{user_min_value_}")
+
             if end_user_number <= user_min_value_:
                 end_user_number = user_min_value_ + 100
                 print(f"Default choice for the last number: {user_min_value_ + 100}")
@@ -560,41 +563,43 @@ def crop_the_list(list_: list):
 
 
 def save_prime_list(list_):
+
     # Kaydedilecek dosyanın ismidir; config.ini üzerinden set edilebilir.
     global new_file_name
 
-    if not len(list_) > 0:
+    # Yüklenen listenin kendisidir.
+    existing_data = np.array([])
+
+    if not list_:
         print("List is empty. No need to save.")
         return
-    else:
-        # Liste içinde listeler yapısını düzleştir.
-        flat_results = [item for sublist in list_ for item in sublist
-                        if item is not None and item <= end_user_number]
-        # aSencron kaydedilen Asal sayılar sıralanır.
-        flat_results = sorted(flat_results)
+
+    # Liste içinde listeler yapısını düzleştir.
+    flat_results = np.array(list_).flatten()
+    # aSencron kaydedilen Asal sayılar sıralanır.
+    flat_results.sort()
 
     try:
         # Yüklenecek dosyayı 'rb' ReadBinary modunda aç.
-        with open(f'{new_file_name}', 'rb') as file:
-            # Veriyi yükle..
-            existing_data = pickle.load(file)
+        with open(new_file_name, 'rb') as file:
+            # Listeyi NumPy Array'e çevir
+            existing_data = np.array(pickle.load(file))
 
-            # Eğer yüklenen liste numpy array ise; ya da isinstance(x, type)
-            if type(existing_data) is np.ndarray:
-                # Yeni eklenecek sıralı veriyi ekle.
-                existing_data = np.concatenate((existing_data, flat_results))
-
-            # Eğer yüklenen dosya python dizisi ise direkt dosyaya kaydet.
-            else:
-                for item in flat_results:
-                    existing_data.append(item)
+            # Listeyi -> Birleştir -> Sırala
+            existing_data = np.concatenate((existing_data, flat_results))
+            existing_data.sort()
 
     except (FileNotFoundError, EOFError):
-        # Yüklenen dosya boş olduğundan existing_data gönerilen liste değerine eşitlenir.
-        existing_data = copy.deepcopy(flat_results)
+        # Yüklenen dosya boş ya da Hatalı ise flat_results listesini kaydet.
+        with open(new_file_name, 'wb') as file:
+            pickle.dump(flat_results, file)
+            print(f'EOFError or FileNotFoundError: {existing_data}, {flat_results}')
+        return
+
+    print(f'TestSave: {existing_data}')
 
     # Kaydedilecek 'wb' WriteBinary modunda aç.
-    with open(f'{new_file_name}', 'wb') as file:
+    with open(new_file_name, 'wb') as file:
         pickle.dump(existing_data, file)
 
 
@@ -630,17 +635,17 @@ def chunks_grouped(slice_count):
 
 
 def is_prime(number, primes):
-    sqrt_of_num = marginal_error + np.sqrt(number).astype(int)
 
+    sqrt_number = np.sqrt(number+marginal_error).astype(int)
     # Bölünürse asal değildir False, aksi halde True
-    presence_of_divisors = np.any(np.mod(number, primes[primes <= sqrt_of_num]) == 0)
+    presence_of_divisors = np.any(np.mod(number, primes[primes <= sqrt_number]) == 0)
 
     return ~presence_of_divisors  # ~0=1
 
 
 def worker(args, shared_primes):
     try:
-        # Gönerilen aralık oluşturulur ve paralel işlenir
+        # Gönerilen aralık oluşturulur ve paralel işlenir.
         start, end = args
 
         # Dizeyi kıstır
@@ -662,7 +667,7 @@ def main() -> None:
     global loaded_list, start_user_number
     global num_processes, num_of_chunks
 
-    cropped_list_ = crop_the_list(loaded_list)  # Yüklü Asal Sayı Listesini Kırpmak
+    cropped_list_ = crop_the_list(loaded_list)  # Yüklü Asal Sayı Listesini Kırpmak.
     len_of_chunk = len_of_chunks()  # Listenin uzunluğunu bellekte tutmak için.
     start_time = time.time()  # Süreyi başlat.
 
@@ -675,13 +680,13 @@ def main() -> None:
 
         # Parçalanmış chunks listesini alt(num_of_chunks) parçalara böl
         for chunk_group in chunks_grouped(num_of_chunks):
+
             try:
                 # chunk_group tuplesi paralel aSencron işlenir
                 results_list = [
-                    pool.apply_async(worker, args=(chunk, cropped_list_)) for chunk in chunk_group
+                    pool.apply_async(worker, args=(chunk, cropped_list_),
+                                     callback=lambda _: pbar.update(1)) for chunk in chunk_group
                 ]
-                # ProgessBar değerini arttır.
-                pbar.update(num_of_chunks)
 
                 # Işçi sonuçlarını listede toplamak için
                 chunk_results = [result.get() for result in results_list]
@@ -692,8 +697,8 @@ def main() -> None:
 
     finish_time = time.time()  # Toplam çalışma süresi
     ex_time = time.time()  # Saving işlem süresi
+    print(f'ChunkResults: {chunk_results}')
     save_prime_list(chunk_results)  # Hesaplanan asalları kaydet
-    details_of_stored_files_below()  # Bilgi ver.
     xe_time = time.time()  # Saving işlem süresi
 
     # Tamamlanma sürelerini terminalde yazdır.
