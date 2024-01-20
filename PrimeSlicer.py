@@ -20,9 +20,9 @@ new_file_name: str  # Yeni oluşan yada son kaydedilen .pkl dosyasının ismi.
 loaded_prime_list_name: str  # Asal sayı kontrolünü yapacak liste belirlenir.
 user_min_value_: int  # Kullanıcının girebileceği min başlangıç değeri.
 marginal_error: int = 100  # Karekök ve Algoritmik hatalardan kaçınmak için (default=100)
-chunk_range: int  # İki chunk elemanı arasında ki uzaklık. (a, b) => b-a = chunk_range
-num_processes: int  # Kullanılacak işlemci sayısı
-num_of_chunks: int  # Kullanılacak Chunk sayısı
+chunk_range: int = 1000  # İki chunk elemanı arasında ki uzaklık. (a, b) => b-a = chunk_range
+num_processes: int = 4  # Kullanılacak işlemci sayısı
+num_of_chunks: int = 4  # Kullanılacak Chunk sayısı
 
 lock = Lock()  # Paralel çalışan parçacıklar için kilit mekanizması
 
@@ -47,7 +47,7 @@ def terminal_options(outputs, error_message_list):
         except Exception as ex:
             # Her iki durumda da başarısız olursa hata mesajını yazdır
             print(f"Terminal size detection error: {ex}")
-            return None
+            terminal_width = 80  # Default bir değer atayarak işlemlere devam et.
 
     break_point = terminal_width // 2  # Kesme noktası.
 
@@ -128,7 +128,7 @@ def file_size_control():
         for file in saved_files_list:
             # Son kaydedilen sayıyı al file_digits_list kaydet
             remove_character_in_file_name(file)
-            # Boyut Kontrolü
+            # Dosyaların Boyut Kontrolü '\u00AC' sembolik bir ifadedir.
             file_save_string = f'\u00AC {file}: {os.stat(file).st_size / (1024 ** 2):.4} MB'
             # Terminalde yazdırmak için kaydet
             file_size_outputs.append(file_save_string)
@@ -138,9 +138,9 @@ def file_size_control():
 
         # Kayıt dosyasının boyutu 20MB fazla ise yeni bir kayıt dosyası oluştur.
         if 20 <= os.stat(last_saved_file).st_size / (1024 ** 2):
-            print(f"{last_saved_file:>40} size is max.")
+            print(f"\n{last_saved_file:>40} size is max.\n")
 
-            # Yeni .pkl dosyası 6 olur
+            # Yeni .pkl dosyası ismi oluşturur.
             new_file_name = f'saved_prime_list{last_file_digit + 1}.pkl'
 
             # yeni .pkl oluştur
@@ -149,11 +149,11 @@ def file_size_control():
         else:
             new_file_name = f'{last_saved_file}'  # Son .pkl ile işleme devam edilir ör:5
 
-        # Terminalde Bastır.
+        # Kaydedilen Boyut bilgilerini Terminalde Bastır.
         terminal_options(file_size_outputs, [])
 
-        # Dosyalar Hakkında Bilgi Yazdırmak
-        details_of_stored_files_below()
+        # Kayıtlı Dosyalar Hakkında Bilgi Yazdırmak
+        details_of_stored_pkl_below(just_last_file=True)
 
     except Exception as ex:
         print(f'Important Name Err: {ex} \
@@ -302,7 +302,7 @@ def choose_cpu_count():
                 raise ValueError(f"Invalid choice! Please enter a value between {mp_count // 2} and {mp_count}.")
             print(f"_" * 60)
             print(f"\033[1mWe are going to use {num_processes} CPUs for the process.\033[0m")
-            time.sleep(2)  # incelemek için
+            time.sleep(2)  # incelemek için bekler.
             break
 
     except ValueError as ve:
@@ -444,7 +444,7 @@ def take_user_number():
             end_user_number = int(input(f"Enter a ODD last number: "))
 
             if start_user_number <= 0 or end_user_number <= 0 or start_user_number >= end_user_number:
-                raise print("Please Enter the correct ODD number.")
+                raise print("Please enter two ODD numbers of the correct size.")
 
             if start_user_number % 2 == 0 or end_user_number % 2 == 0:
                 raise print("Please Enter two ODD number.")
@@ -454,7 +454,7 @@ def take_user_number():
 
             if end_user_number <= user_min_value_:
                 end_user_number = user_min_value_ + 100
-                print(f"Default choice for the last number: {user_min_value_ + 100}")
+                print(f"Default choice for the last number: {user_min_value_ + 10000}")
             break  # Eğer istenilen sayılar girilirse fonksiyonu bitir.
         except ValueError as er:
             print(f"{er}")
@@ -466,17 +466,22 @@ def approx_calculation_of_probability() -> None:
     # Yaklaşık Asal Miktarı ve Yoğunluğunu hesaplar
     global end_user_number, start_user_number, num_processes
 
-    average_prime_ = (end_user_number / np.log(end_user_number)) - (start_user_number / np.log(start_user_number))
-    density_of_primes_ = 100 * (average_prime_ / (end_user_number - start_user_number))
-    print(f"_" * 60)
-    print(f"\033[1mAverage prime number count between ≈ {int(average_prime_)}\033[1n")
-    print(f"\033[1mDensity of prime between than ≈ %{int(density_of_primes_)}\033[1n")
-    print(f"_" * 60)
-    print(f"\033[1mWe are going to use {num_processes} CPUs for the process.\033[0m")
-    print(f"\033[1mWe are going to use {num_of_chunks} chunks to distribute the task.\033[0m")
-    print(f"\033[1mWe are going to use {chunk_range} distribute the chunk's.\033[0m")
-    print(f"_" * 60)
-    time.sleep(7)  # İncelenmek için 7sn bekler
+    try:
+        average_prime_ = (end_user_number / np.log(end_user_number)) - (start_user_number / np.log(start_user_number))
+        density_of_primes_ = 100 * (average_prime_ / (end_user_number - start_user_number))
+        print(f"_" * 60)
+        print(f"\033[1mAverage prime number count between ≈ {int(average_prime_)}\033[1n")
+        print(f"\033[1mDensity of prime between than ≈ %{int(density_of_primes_)}\033[1n")
+        print(f"_" * 60)
+        print(f"\033[1mWe are going to use {num_processes} CPUs for the process.\033[0m")
+        print(f"\033[1mWe are going to use {num_of_chunks} chunks to distribute the task.\033[0m")
+        print(f"\033[1mWe are going to use {chunk_range} distribute the chunk's.\033[0m")
+        print(f"_" * 60)
+        time.sleep(7)  # İncelenmek için 7sn bekler
+    except (Exception, ZeroDivisionError) as err:
+        print(f"Approx Calculation Err: {err}")
+    except KeyboardInterrupt:
+        raise print("Process terminated due to user keyboard input.")
 
 
 def load_with_this_value_prime_list():
@@ -485,16 +490,17 @@ def load_with_this_value_prime_list():
     global temp_num_
     global loaded_prime_list_name
 
+    # Belirlenen kontol listesini yükler.
     try:
-        with open(f'saved_prime_list0.pkl', 'rb') as saved_file:
+        with open(loaded_prime_list_name, 'rb') as saved_file:
             loaded_list = pickle.load(saved_file)
             return ":)"
     except Exception as ex:
         print(f"\n{loaded_prime_list_name} file is broken: {ex}")
-        print("Please Delete Broken and Empty Files. And Restart The Program")
+        print("Important err: Control list is broken.")
 
 
-def details_of_stored_files_below():
+def details_of_stored_pkl_below(just_last_file=False):
     global new_file_name
     global last_file_digit
     global user_min_value_
@@ -506,7 +512,12 @@ def details_of_stored_files_below():
     # Listelerin yüklenme durumunu görmek için.
     pbar = tqdm(total=last_file_digit, desc="Loading Lists", position=0, leave=True)
 
-    for temp_num in range(0, (last_file_digit + 1)):
+    for temp_num in range(0, (last_file_digit + 2)):
+        # Sadece son listelerin bilgilerini ver.
+        if just_last_file:
+            temp_num = last_file_digit
+            pbar.update(last_file_digit-1)  # Liste yüklendi.
+
         pbar.update(1)  # Liste yüklendi.
         try:
             with open(f'saved_prime_list{temp_num}.pkl', 'rb') as dump_in_terminal:
@@ -523,11 +534,15 @@ def details_of_stored_files_below():
                      f"The list contains {len_of_list} prime"]
                 )
                 data_text_list.append(data_text_tuple)  # Liste hakkında ki bilgileri ekle.
-
+            if just_last_file:
+                break  # Liste yüklendi.
         except Exception as ex:
-            if not temp_num == last_file_digit:
-                expectation_error = f'saved_prime_list{temp_num}.pkl file is broken: {ex}'
-                error_mesage_list.append(expectation_error)
+            # Kayıt listesi ise hata mesajı yazdırma.
+            if last_file_digit <= temp_num:
+                continue
+
+            expectation_error = f'saved_prime_list{temp_num}.pkl file is broken: {ex}'
+            error_mesage_list.append(expectation_error)
 
     # Progess Bar işlemini tamamladı devredışı olsun ve bulunduğu satırı silsin.
     pbar.close()
@@ -538,14 +553,16 @@ def details_of_stored_files_below():
     print(f"\033[1mTotal number of calculated primes in the saved .pkl files: {total_primes_}\033[1n")
 
 
-def crop_the_list(list_: list):
-    global end_user_number
-    global marginal_error
+def crop_the_list():
+    # Kontrol listesini girilen aralıktaki
+    # en büyük (end_user_number) sayının Karekökü ile sınırlar.
+    global end_user_number, marginal_error
+    global loaded_list
 
     sqrt_end = np.sqrt(end_user_number).astype(int) + marginal_error
 
     # Özel bir hata mesajı fırlatır
-    if not sqrt_end <= list_[-1]:
+    if not sqrt_end <= loaded_list[-1]:
         print(f"""\033[1m
             Since the square root of {sqrt_end}, the last number you selected,
             is greater than the last element of 'saved_prime_list0.pkl', the list
@@ -555,61 +572,79 @@ def crop_the_list(list_: list):
             """)
         sys.exit(1)
 
-    # Performans için dtype ile dizeyi optimum boyutta tutar
-    optimum_list = np.array(list_)
+    # Performans için numpy array ile dizeyi optimum boyutta tutar.
+    optimum_list = np.array(loaded_list)
     optimum_list = optimum_list[optimum_list <= sqrt_end]
 
     return optimum_list
 
 
-def save_prime_list(list_):
+def save_prime_list(_chunk_results):
 
-    # Kaydedilecek dosyanın ismidir; config.ini üzerinden set edilebilir.
-    global new_file_name
-
-    # Yüklenen listenin kendisidir.
-    existing_data = np.array([])
-
-    if not list_:
+    # Eğer kaydedilecek listede eleman yok ise.
+    if not len(_chunk_results) > 0:
         print("List is empty. No need to save.")
         return
 
-    # Liste içinde listeler yapısını düzleştir.
-    flat_results = np.array(list_).flatten()
-    # aSencron kaydedilen Asal sayılar sıralanır.
-    flat_results.sort()
+    # Liste içinde listeler yapısını düzleştir;
+    # Işçilerin özel listelerini içerir.
+    flat_results = [item for sublist in _chunk_results for item in sublist
+                    if item is not None and item <= end_user_number]
+
+    # aSencron kaydedilen Asal sayılar sorted ile sıralanır.
+    flat_results = sorted(flat_results)
 
     try:
-        # Yüklenecek dosyayı 'rb' ReadBinary modunda aç.
-        with open(new_file_name, 'rb') as file:
-            # Listeyi NumPy Array'e çevir
-            existing_data = np.array(pickle.load(file))
+        with open(new_file_name, 'rb') as data:
+            exist_data = pickle.load(data)
 
-            # Listeyi -> Birleştir -> Sırala
-            existing_data = np.concatenate((existing_data, flat_results))
-            existing_data.sort()
-
-    except (FileNotFoundError, EOFError):
-        # Yüklenen dosya boş ya da Hatalı ise flat_results listesini kaydet.
-        with open(new_file_name, 'wb') as file:
-            pickle.dump(flat_results, file)
-            print(f'EOFError or FileNotFoundError: {existing_data}, {flat_results}')
+    except (FileNotFoundError, EOFError) as err:
+        # Kayıt listesini açarken bir hata oluşursa; Yüklenen liste boştur.
+        print(f"Saving list has an error: {err}\nSaving just calculated list...")
+        import_into_pkl_list(flat_results)
         return
 
-    print(f'TestSave: {existing_data}')
+    # Kayıt listesinin içinde ki verinin tipini öğren.
+    # NumPy array ise eğer; Listeleri NumPy methodu ile sıkıştır.
+    if isinstance(exist_data, np.ndarray):
+        flat_results = np.array(flat_results)
+        _numpy_merged_list = np.concatenate((exist_data, flat_results))
+        import_into_pkl_list(_numpy_merged_list)
+        return
 
-    # Kaydedilecek 'wb' WriteBinary modunda aç.
-    with open(new_file_name, 'wb') as file:
-        pickle.dump(existing_data, file)
+    # Python listesi ise Python listesi olarak kaydet.
+    elif isinstance(exist_data, list):
+        merged_list = exist_data + flat_results
+        import_into_pkl_list(merged_list)
+        return
+
+    else:
+        print('Current saving file is not broken or empty, but is not LIST.')
+        print(f'Data type is: {type(exist_data)}')
+        raise SystemExit
+
+
+def import_into_pkl_list(save_list):
+    # Kaydedilecek dosyanın ismidir; config.ini üzerinden set edilebilir.
+    # Otomatik olarak belirlenir.
+    global new_file_name
+
+    try:
+
+        with open(new_file_name, 'wb') as data:
+            pickle.dump(save_list, data)
+
+    except Exception as ex:
+        print(f'Saving Err: {ex}')
 
 
 def len_of_chunks():
     global start_user_number, end_user_number, num_of_chunks, chunk_range
 
-    # Listeyi oluştur
-    chunk_list = [(i, i + chunk_range) for i in range(start_user_number, end_user_number + 2, chunk_range)]
+    # Belirtilen aralığı oluştur ve uzunluğunu bul. ProgessBar için gerekli.
+    _chunk_list = [(i, i + chunk_range) for i in range(start_user_number, end_user_number + 2, chunk_range)]
 
-    return len(chunk_list)
+    return len(_chunk_list)
 
 
 def chunks_grouped(slice_count):
@@ -668,44 +703,42 @@ def main() -> None:
     global loaded_list, start_user_number
     global num_processes, num_of_chunks
 
-    cropped_list_ = crop_the_list(loaded_list)  # Yüklü Asal Sayı Listesini Kırpmak.
+    cropped_list_ = crop_the_list()  # Yüklü Asal Sayı Listesini Kırpmak.
     len_of_chunk = len_of_chunks()  # Listenin uzunluğunu bellekte tutmak için.
     start_time = time.time()  # Süreyi başlat.
 
     with Pool(processes=num_processes) as pool:
-        # Parallel işlemeye başla.
+        # Işçi sonuçlarını kalıcı olarak tutan dizedir.
         chunk_results = []
 
-        # progress bar oluştur
-        pbar = tqdm(total=len_of_chunk, desc="Processing Chunks...", position=0, leave=True)
+        # progress bar oluştur işçilerin süreçlerini kontrol et.
+        pbar = tqdm(total=len_of_chunk, desc="Processing Chunks", position=0, leave=True)
 
-        # Parçalanmış chunks listesini alt(num_of_chunks) parçalara böl
+        # Parçalanmış chunks listesini alt (num_of_chunks) adet parçalara böl
         for chunk_group in chunks_grouped(num_of_chunks):
             try:
                 # chunk_group tuplesi paralel aSencron işlenir
                 results_list = [
-                    pool.apply_async(worker, args=(chunk, cropped_list_)) for chunk in chunk_group
+                    pool.apply_async(worker, args=(chunk, cropped_list_),
+                                     callback=lambda _: pbar.update(1)) for chunk in chunk_group
                 ]
 
-                # ProgessBar değerini arttır.
-                pbar.update(num_of_chunks)
-
                 # Işçi sonuçlarını listede toplamak için
-                chunk_results = [result.get() for result in results_list]
+                # '+=' olması gerektiğini farketmem uzun sürdü, çok.
+                chunk_results += [result.get() for result in results_list]
 
             except Exception as e:
                 print(f"An error occurred in multiprocessing in main function: {e}")
                 raise SystemExit
 
     pbar.close()  # Tamamlanan ProgressBar'ı Kapat.
-    finish_time = time.time()  # Toplam çalışma süresi
-    ex_time = time.time()  # Saving işlem süresi
+    finish_time = time.time()  # Paralel olarak Toplam çalışma süresi
+    ex_time = time.time()  # Saving işlem süresini başlat.
     save_prime_list(chunk_results)  # Hesaplanan asalları kaydet
-    details_of_stored_files_below()  # Bilgi ver.
-    xe_time = time.time()  # Saving işlem süresi
+    details_of_stored_pkl_below(just_last_file=True)  # Kaydedilen son dosya hakkında Bilgi ver.
+    xe_time = time.time()  # Saving işlem süresini bitir.
 
     # Tamamlanma sürelerini terminalde yazdır.
-    print(f'ChunkResults: {chunk_results[:10]}...{chunk_results[-10:]}')
     print(f"\033[1mTotal Calc. Time of Multiprocessing: {finish_time - start_time} second(s) / "
           f"{(finish_time - start_time) / 60} minute\033[1n")
     print(f"\033[1mTotal Calc. Time of Program: {finish_time + xe_time - start_time - ex_time} second(s) / "
