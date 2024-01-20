@@ -21,8 +21,8 @@ Kullanıcılar, her program başladığında dosya boyutunu kontrol etme özelli
 ### Algoritmanın İşleyişi
 
 1. Belirtilen aralıktaki tek sayıları seç.
-2. Her bir seçilen sayıyı, daha önce kaydedilmiş asal sayı listesi ile kontrol et.
-3. Eğer seçilen sayı, hiçbir asal sayıya tam olarak bölünmezse, o sayıyı asal olarak kabul et.
+2. Her bir seçilen sayıyı, daha önce kaydedilmiş asal sayı listesi sayının kareköküne kadar kontrol et.
+3. Eğer seçilen sayı, kareköküne kadar olan hiçbir asal sayıya tam olarak bölünmezse, o sayıyı asal olarak kabul et.
 4. Asal sayıları biriktir ve sonuç listesini oluştur.
 
 ### Kümulatif Hesaplama
@@ -32,6 +32,7 @@ Bu proje, kümulatif bir şekilde asal sayıları hesaplayabilir. Her hesaplama 
 ### Kaydedilmiş Liste Kullanımı
 
 Kullanıcılar, belirli bir aralıktaki asal sayıları daha hızlı hesaplamak için kaydedilmiş asal sayı listesini kullanabilirler. Bu, projenin daha önceki hesaplamalarını kullanarak işlem süresini optimize etmelerine olanak tanır.
+Yüklediğim listelerde default kontrol listesi olan saved_prime_list0.pkl ile  84499873, Dolayısıyla 84499873² ≈ 7.14x10¹⁵ aralığında ki asal sayılar tespit edilebilir.
 
 ### Nasıl Kullanılır
 
