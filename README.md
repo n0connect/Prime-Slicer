@@ -3,7 +3,7 @@
 Prime-Slicer, belirli bir aralıktaki asal sayıları paralel programlama ile bulan Python programıdır.
 Gerekli kütüphaneleri require_libs.py ile veya prime-slicer-libs.bat ile yükleyebilirsiniz.
 
-## Kullanılan Asal Sayı Bulma Algoritması
+![terminal-pics6](https://github.com/n0connect/Prime-Slicer/assets/126422643/f3026df6-229b-4a3f-a48d-72f603d9af40)
 
 Bu proje, belirli bir aralıktaki asal sayıları bulmak için bir algoritma kullanır. Asal sayılar, yalnızca 1 ve kendisi tarafından bölünebilen sayılardır. Proje, belirtilen bir başlangıç ve bitiş sayısı arasındaki tek sayıları seçer ve bu sayıları daha önce kaydedilmiş olan bir asal sayı listesi ile kontrol eder.
 
@@ -86,11 +86,11 @@ Program çalıştığında, işlemin durumunu ve hesaplanan asal sayıları içe
 
 Projenin mevcut durumu stabildir, yani temel işlevselliği sağlamaktadır ve beklenen sonuçları başarıyla üretmektedir. Ancak, projede sürekli iyileştirmeler ve ek özellikler eklemeye devam ediyorum.
 
-**Gelecek Geliştirmeler:**
-- Asal sayı hesaplama algoritmasının daha fazla optimize edilmesi
-- Kullanıcı arayüzünde geliştirmeler ve interaktif özellikler eklenmesi
-- Kullanıcının tercihlerini saklamak için daha fazla yapılandırma seçeneği
-- Performans iyileştirmeleri ve hata düzeltmeleri
+![terminal-pics](https://github.com/n0connect/Prime-Slicer/assets/126422643/252dd0a5-e6bd-42db-9882-5081fbcd5539)
+![terminal-pics2](https://github.com/n0connect/Prime-Slicer/assets/126422643/2aebc982-e26b-4c95-b4fa-8658b2081d9d)
+![terminal-pics3](https://github.com/n0connect/Prime-Slicer/assets/126422643/3a01682a-3977-4afc-9c82-f9c208132f65)
+![terminal-pics4](https://github.com/n0connect/Prime-Slicer/assets/126422643/0bad609e-e882-4c5d-b0d6-fe34bedbe916)
+![terminal-pics5](https://github.com/n0connect/Prime-Slicer/assets/126422643/79261923-edae-4462-8ee0-c460aefc6982)
 
 Bu projeyi geliştirme sürecindeyim.
 
