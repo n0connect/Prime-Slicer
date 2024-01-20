@@ -153,7 +153,7 @@ def file_size_control():
         terminal_options(file_size_outputs, [])
 
         # Kayıtlı Dosyalar Hakkında Bilgi Yazdırmak
-        details_of_stored_pkl_below(just_last_file=True)
+        details_of_stored_pkl_below()
 
     except Exception as ex:
         print(f'Important Name Err: {ex} \
