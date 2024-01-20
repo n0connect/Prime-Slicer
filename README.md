@@ -1,6 +1,7 @@
 # Prime-Slicer
 
 Prime-Slicer, belirli bir aralıktaki asal sayıları paralel programlama ile bulan Python programıdır.
+Gerekli kütüphaneleri require_libs.py ile veya prime-slicer-libs.bat ile yükleyebilirsiniz.
 
 ## Kullanılan Asal Sayı Bulma Algoritması
 
