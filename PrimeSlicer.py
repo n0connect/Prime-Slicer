@@ -546,7 +546,6 @@ def details_of_stored_pkl_below():
     # Dosyalar tamamen açıldığında bilgileri ekrana bastır.
     terminal_options(data_text_list, error_mesage_list)
     print(f"\033[1mTotal number of calculated primes in the saved .pkl files: {total_primes_}\033[1n")
-    sys.exit(1)
 
 
 def crop_the_list():
