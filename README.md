@@ -37,7 +37,16 @@ Yüklediğim listelerde default kontrol listesi olan saved_prime_list0.pkl ile  
 
 ### Nasıl Kullanılır
 
-Projeyi başlatırken, kullanıcılardan belirli bir aralık ve hesaplama için kullanılacak CPU sayısı gibi girişler alınır. Kullanıcılar, aynı zamanda asal sayı listesini kullanıp kullanmama konusunda da tercih yapabilirler.
+Projeyi başlatırken, kullanıcılardan belirli bir aralık ve hesaplama için kullanılacak CPU, Chunk Count, Chunk Range girişleri alınır. Kullanıcılar, aynı zamanda asal sayı listesi konusunda da tercih yapabilirler.
+
+- **CPU Girişi:** Kullanıcıdan kullanılacak CPU sayısının girişi alınır ve işlemin hızını büyük ölçüde etkiler.
+
+- **Chunk Range:** Kullanıcının belirlediği aralıkta ki tek sayıları; Paralel olarak işçilere paylaştırmak için aralık belirler.
+ ör: chunk-range=1000, a=BaşlangıçSayısı ise Kullanıcının aralığı; (a, a+1000), (a+1000, a+2000), ... olarak parçalanır.
+
+- **Chunk Count:** Parçalanan aralığı alt gruplara böler ve her alt grubun içinde ki aralık sayısını belirler. ör: chunk-count=2 ise parçalanış şu şekildedir;
+[ [ (a, a+1000), (a+1000, a+2000) ], [ (a+2000, a+3000), (a+3000, a+4000) ],  [ (a+4000, a+5000), (a+5000, a+6000) ], [ (a+6000, a+7000), (a+7000, a+8000) ]... ] ] 2 elemanlı alt gruplar oluşturur.
+Bu oluşturulan alt gruplar paralel olarak aynı anda işlenmez! Aksine paralel olarak işlenenler parçalanan alt grubun içerisinde ki bütün aralıklardır; Yani Sırası ile alt gruplar işlenir, fakat paralel olarak işlenenler aralıklardır. 
 
 
 ## Çalışma Ortamı
