@@ -48,7 +48,7 @@ Projeyi başlatırken, kullanıcılardan belirli bir aralık ve hesaplama için 
 [ [ (a, a+1000), (a+1000, a+2000) ], [ (a+2000, a+3000), (a+3000, a+4000) ],  [ (a+4000, a+5000), (a+5000, a+6000) ], [ (a+6000, a+7000), (a+7000, a+8000) ]... ] ] 2 elemanlı alt gruplar oluşturur.
 Bu oluşturulan alt gruplar paralel olarak aynı anda işlenmez! Aksine paralel olarak işlenenler parçalanan alt grubun içerisinde ki bütün aralıklardır; Yani Sırası ile alt gruplar işlenir, fakat paralel olarak işlenenler aralıklardır.
 
-- **marginal-error:** Kullanıcıdan istenmez fakat config.ini dosyası üzerinden set edilebilir. karekök hesaplamalarında, hata payı olarak sayıyanın kendisine eklenir.
+- **marginal-error:** Kullanıcıdan istenmez fakat config.ini dosyası üzerinden set edilebilir. karekök hesaplamalarında, hata payı olarak sayıynın kendisine eklenir.
 
 
 ## Çalışma Ortamı
