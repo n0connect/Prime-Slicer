@@ -4,7 +4,7 @@ Prime-Slicer, belirli bir aralıktaki asal sayıları paralel programlama ile bu
 Gerekli kütüphaneleri require_libs.py ile veya prime-slicer-libs.bat ile yükleyebilirsiniz.
 
 ![terminal-pics6](https://github.com/n0connect/Prime-Slicer/assets/126422643/f3026df6-229b-4a3f-a48d-72f603d9af40)
-**5.007.654.251 ile 5.097.654.251 arasında ki 90.000.000 sayıyı 4 dakikada incelemiş ve asal olanları tespit etmiştir.
+**5.007.654.251 ile 5.097.654.251 arasında ki 90.000.000 sayıyı 4 dakikada incelemiş ve asal olanları tespit etmiştir.**
 
 Bu proje, belirli bir aralıktaki asal sayıları bulmak için bir algoritma kullanır. Asal sayılar, yalnızca 1 ve kendisi tarafından bölünebilen sayılardır. Proje, belirtilen bir başlangıç ve bitiş sayısı arasındaki tek sayıları seçer ve bu sayıları daha önce kaydedilmiş olan bir asal sayı listesi ile kontrol eder.
 
