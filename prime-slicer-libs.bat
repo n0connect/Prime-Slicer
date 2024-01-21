@@ -1,3 +1,3 @@
 @echo off
-python install_libraries.py
+python require_libs.py
 pause
