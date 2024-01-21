@@ -46,7 +46,9 @@ Projeyi başlatırken, kullanıcılardan belirli bir aralık ve hesaplama için 
 
 - **Chunk Count:** Parçalanan aralığı alt gruplara böler ve her alt grubun içinde ki aralık sayısını belirler. ör: chunk-count=2 ise parçalanış şu şekildedir;
 [ [ (a, a+1000), (a+1000, a+2000) ], [ (a+2000, a+3000), (a+3000, a+4000) ],  [ (a+4000, a+5000), (a+5000, a+6000) ], [ (a+6000, a+7000), (a+7000, a+8000) ]... ] ] 2 elemanlı alt gruplar oluşturur.
-Bu oluşturulan alt gruplar paralel olarak aynı anda işlenmez! Aksine paralel olarak işlenenler parçalanan alt grubun içerisinde ki bütün aralıklardır; Yani Sırası ile alt gruplar işlenir, fakat paralel olarak işlenenler aralıklardır. 
+Bu oluşturulan alt gruplar paralel olarak aynı anda işlenmez! Aksine paralel olarak işlenenler parçalanan alt grubun içerisinde ki bütün aralıklardır; Yani Sırası ile alt gruplar işlenir, fakat paralel olarak işlenenler aralıklardır.
+
+- **marginal-error:** Kullanıcıdan istenmez fakat config.ini dosyası üzerinden set edilebilir. karekök hesaplamalarında, hata payı olarak sayıyanın kendisine eklenir.
 
 
 ## Çalışma Ortamı
