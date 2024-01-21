@@ -293,11 +293,11 @@ def choose_cpu_count():
     print(f"_" * 60)
 
     try:
-        mp_count = multiprocessing.cpu_count()
 
         while True:
+
             num_processes = int(input("Enter the number of CPUs to use for the process: "))
-            num_processes = max(num_processes, mp_count // 2)  # min cpu kullanıcıya göre seç
+
             if num_processes < mp_count // 2 or num_processes > mp_count:
                 raise ValueError(f"Invalid choice! Please enter a value between {mp_count // 2} and {mp_count}.")
             print(f"_" * 60)
@@ -335,8 +335,8 @@ def chose_num_of_chunks():
 
     Keep in mind that the ideal value may vary based on your \033[1m"specific hardware"\033[0m and workload.
 
-    Recommended Value Range: \033[1m[4, 10]\033[0m
-    Max Value Range: \033[1m20\033[0m
+    Recommended Value Range: \033[1m[4, 50]\033[0m
+    Max Value Range: \033[1m50\033[0m
     """)
     print(f"_" * 60)
     try:
@@ -345,7 +345,7 @@ def chose_num_of_chunks():
         while True:
             num_of_chunks = int(input("\033[1mEnter the number of chunks to divide the task into: \033[0m"))
             num_of_chunks = max(num_of_chunks, 4)  # Kullanıcının seçimini min 4 olarak seç
-            if num_of_chunks > mp_count or num_of_chunks <= 0 or num_of_chunks > 20:
+            if num_of_chunks > mp_count or num_of_chunks <= 0 or num_of_chunks > 50:
                 raise ValueError(f"Invalid choice! Please enter a value between {mp_count // 2} and 8.")
 
             print(f"\033[1mWe are going to use {num_of_chunks} chunks to distribute the task.\033[0m")
