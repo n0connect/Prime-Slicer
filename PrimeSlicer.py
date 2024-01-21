@@ -500,7 +500,7 @@ def load_with_this_value_prime_list():
         print("Important err: Control list is broken.")
 
 
-def details_of_stored_pkl_below(just_last_file=False):
+def details_of_stored_pkl_below():
     global new_file_name
     global last_file_digit
     global user_min_value_
@@ -513,10 +513,6 @@ def details_of_stored_pkl_below(just_last_file=False):
     pbar = tqdm(total=last_file_digit, desc="Loading Lists", position=0, leave=True)
 
     for temp_num in range(0, (last_file_digit + 2)):
-        # Sadece son listelerin bilgilerini ver.
-        if just_last_file:
-            temp_num = last_file_digit
-            pbar.update(last_file_digit-1)  # Liste yüklendi.
 
         pbar.update(1)  # Liste yüklendi.
         try:
@@ -534,8 +530,7 @@ def details_of_stored_pkl_below(just_last_file=False):
                      f"The list contains {len_of_list} prime"]
                 )
                 data_text_list.append(data_text_tuple)  # Liste hakkında ki bilgileri ekle.
-            if just_last_file:
-                break  # Liste yüklendi.
+
         except Exception as ex:
             # Kayıt listesi ise hata mesajı yazdırma.
             if last_file_digit <= temp_num:
@@ -551,6 +546,7 @@ def details_of_stored_pkl_below(just_last_file=False):
     # Dosyalar tamamen açıldığında bilgileri ekrana bastır.
     terminal_options(data_text_list, error_mesage_list)
     print(f"\033[1mTotal number of calculated primes in the saved .pkl files: {total_primes_}\033[1n")
+    sys.exit(1)
 
 
 def crop_the_list():
@@ -735,7 +731,7 @@ def main() -> None:
     finish_time = time.time()  # Paralel olarak Toplam çalışma süresi
     ex_time = time.time()  # Saving işlem süresini başlat.
     save_prime_list(chunk_results)  # Hesaplanan asalları kaydet
-    details_of_stored_pkl_below(just_last_file=True)  # Kaydedilen son dosya hakkında Bilgi ver.
+    details_of_stored_pkl_below()  # Kaydedilen son dosya hakkında Bilgi ver.
     xe_time = time.time()  # Saving işlem süresini bitir.
 
     # Tamamlanma sürelerini terminalde yazdır.
