@@ -12,7 +12,7 @@ Bu proje, belirli bir aralıktaki asal sayıları bulmak için bir algoritma kul
 
 Varsayılan olarak, projenin başlangıcında bir asal sayı listesi oluşturulur ve bu liste "saved_prime_list0.pkl" dosyasında saklanır. Bu liste, daha önceki hesaplamaların birikimi olarak elde edilir ve asal sayıları içerir. Kullanıcılar, bu kaydedilmiş listeyi kullanarak daha hızlı hesaplamalar yapabilirler.
 
-Asal sayı listesi her başlangıçta bir dosyada saklanır. Ancak, dosyanın boyutu belirli bir sınırı aştığında (örneğin, 1MB), yeni bir asal sayı listesi oluşturulur. Örneğin, "saved_prime_list0.pkl" dosyası 1MB'ı geçerse, bir sonraki hesaplama işlemi için yeni bir liste "saved_prime_list1.pkl" adında oluşturulur.
+Asal sayı listesi her başlangıçta bir dosyada saklanır. Ancak, dosyanın boyutu belirli bir sınırı aştığında (örneğin, 1MB), yeni bir asal sayı listesi oluşturulur. Örneğin, "saved_prime_list0.pkl" dosyası 20MB'ı geçerse, bir sonraki hesaplama işlemi için yeni bir liste "saved_prime_list1.pkl" adında oluşturulur.
 
 Bu, hem bellek kullanımını optimize etmek hem de daha büyük asal sayıları saklamak için dinamik bir listeleme yöntemini sağlar.
 
