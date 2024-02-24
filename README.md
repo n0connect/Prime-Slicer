@@ -51,7 +51,7 @@ Bu oluşturulan alt gruplar paralel olarak aynı anda işlenmez! Aksine paralel 
 - **marginal-error:** Kullanıcıdan istenmez fakat config.ini dosyası üzerinden set edilebilir. karekök hesaplamalarında, hata payı olarak sayıynın kendisine eklenir.
 
 
-## Çalışma Ortamı
+## Geliştirme Ortamım
 
 - **Python Sürümü:** 3.12.1
 - **İşletim Sistemi:** Windows 10 Home Single Language, 64-bit
